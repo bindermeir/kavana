@@ -2,8 +2,9 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Save, Plus, X, Heart, Star, Zap, PenTool } from 'lucide-react';
-import { saveJournalEntry, JournalEntry } from '@/lib/storage';
+import { Save, Plus, X, Heart, Star, Zap, PenTool, Moon, Sparkles } from 'lucide-react';
+import { saveJournalEntry, JournalEntry, getProfile, saveProfile } from '@/lib/storage';
+import { toast } from 'sonner';
 
 export default function JournalForm() {
     const [step, setStep] = useState(0);
@@ -14,7 +15,10 @@ export default function JournalForm() {
         declaration: '',
         date: new Date().toISOString()
     });
+    });
     const [isSaved, setIsSaved] = useState(false);
+    const [isGenerating, setIsGenerating] = useState(false);
+    const [eveningReflection, setEveningReflection] = useState('');
 
     const updateGratitude = (index: number, value: string) => {
         const newItems = [...(entry.gratitude_items || [])];
@@ -22,44 +26,128 @@ export default function JournalForm() {
         setEntry(prev => ({ ...prev, gratitude_items: newItems }));
     };
 
-    const handleSave = () => {
-        if (!entry.daily_success) return; // Basic validation
+    const handleSave = async () => {
+        if (!entry.daily_success) {
+            toast.error('אנא ציין לפחות הצלחה אחת היום');
+            return;
+        }
+
+        setIsGenerating(true);
+
         const finalEntry = {
             ...entry,
             id: crypto.randomUUID(),
-            user_id: 'current-user', // MVP placeholder
+            user_id: 'current-user',
             date: new Date().toISOString()
         } as JournalEntry;
 
+        // 1. Save to Journal
         saveJournalEntry(finalEntry);
+
+        // 2. Auto-sync to CBT Bank
+        const profile = getProfile();
+        if (profile) {
+            let updatedProfile = { ...profile };
+            if (finalEntry.daily_success) {
+                updatedProfile.success_bank = [...(updatedProfile.success_bank || []), finalEntry.daily_success];
+            }
+            if (finalEntry.capacity_used) {
+                updatedProfile.personal_strengths = [...(updatedProfile.personal_strengths || []), finalEntry.capacity_used];
+            }
+            saveProfile(updatedProfile);
+        }
+
+        // 3. Generate Evening Reflection
+        try {
+            const res = await fetch('/api/generate-evening', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ profile, journal: finalEntry })
+            });
+            const data = await res.json();
+            if (data.reflection) {
+                setEveningReflection(data.reflection);
+            }
+        } catch (e) {
+            console.error(e);
+            toast.error('לא הצלחנו לייצר סיכום אוטומטי, אבל היומן נשמר.');
+        }
+
+        setIsGenerating(false);
         setIsSaved(true);
     };
 
+    if (isGenerating) {
+        return (
+            <div className="flex flex-col items-center justify-center py-24 space-y-6">
+                <div className="relative w-24 h-24 flex items-center justify-center">
+                    <motion.div 
+                        animate={{ rotate: 360 }} 
+                        transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+                        className="absolute inset-0 rounded-full border-t-2 border-primary border-r-2 opacity-50"
+                    />
+                    <motion.div 
+                        animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }} 
+                        transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                    >
+                        <Moon className="w-10 h-10 text-primary" />
+                    </motion.div>
+                </div>
+                <div className="text-center space-y-2">
+                    <h2 className="text-xl font-bold font-serif gradient-text">מעבד את האסיף היומי...</h2>
+                    <p className="text-sm text-text-secondary">מלקט את ההצלחות שלך לכדי סיכום לילה</p>
+                </div>
+            </div>
+        );
+    }
+
     if (isSaved) {
         return (
-            <div className="text-center py-20 space-y-4">
-                <motion.div
-                    initial={{ scale: 0 }} animate={{ scale: 1 }}
-                    className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto text-green-600"
-                >
-                    <Heart className="w-10 h-10 fill-current" />
-                </motion.div>
-                <h2 className="text-2xl font-serif font-bold">היומן נשמר בהצלחה</h2>
-                <p className="text-text-secondary">לילה טוב וחלומות פז.</p>
-                <button
-                    onClick={() => { setIsSaved(false); setStep(0); setEntry({ gratitude_items: ['', '', ''] }); }}
-                    className="text-primary font-medium hover:underline"
-                >
-                    כתוב יומן חדש
-                </button>
+            <div className="py-10 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                <div className="text-center space-y-4">
+                    <motion.div
+                        initial={{ scale: 0 }} animate={{ scale: 1 }}
+                        className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mx-auto text-white shadow-lg shadow-indigo-500/20"
+                    >
+                        <Moon className="w-8 h-8 fill-current" />
+                    </motion.div>
+                    <h2 className="text-2xl font-serif font-bold text-primary">היומן נשמר. לילה טוב.</h2>
+                </div>
+
+                {eveningReflection && (
+                    <motion.div 
+                        initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
+                        className="bg-card p-6 rounded-3xl border border-primary/20 shadow-xl shadow-primary/5 relative overflow-hidden"
+                    >
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl" />
+                        <h3 className="text-sm font-bold text-primary mb-4 flex items-center gap-2">
+                            <Sparkles className="w-4 h-4" />
+                            תפילת לילה מותאמת עבורך:
+                        </h3>
+                        <p className="text-lg leading-relaxed font-serif whitespace-pre-wrap text-text-primary relative z-10">
+                            {eveningReflection}
+                        </p>
+                    </motion.div>
+                )}
+
+                <div className="text-center pt-8">
+                    <button
+                        onClick={() => { setIsSaved(false); setEveningReflection(''); setStep(0); setEntry({ gratitude_items: ['', '', ''] }); }}
+                        className="text-text-secondary text-sm font-medium hover:text-primary transition-colors"
+                    >
+                        כתוב רשומה נוספת
+                    </button>
+                </div>
             </div>
         );
     }
 
     return (
         <div className="pt-4 space-y-6">
-            <div className="text-center space-y-2">
-                <div className="text-sm text-text-secondary">סיכום יום</div>
+            <div className="text-center space-y-2 relative z-10">
+                <div className="text-sm text-text-secondary flex items-center justify-center gap-2">
+                    <Moon className="w-4 h-4" /> סיכום יום
+                </div>
                 <h1 className="text-3xl font-serif font-bold text-primary">האסיף היומי</h1>
             </div>
 

@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from 'react';
-import { getPrayers, PrayerEntry } from '@/lib/storage';
-import { PieChart, TrendingUp, Activity, ShieldAlert } from 'lucide-react';
+import { getPrayers, PrayerEntry, getProfile, UserProfile } from '@/lib/storage';
+import { PieChart, TrendingUp, Activity, ShieldAlert, Target, Compass, Sparkles, Plus, Trash2 } from 'lucide-react';
 
 export default function InsightsTab() {
     const [stats, setStats] = useState<any>(null);
+    const [profile, setProfile] = useState<UserProfile | null>(null);
 
     useEffect(() => {
         const prayers = getPrayers();
@@ -27,9 +27,10 @@ export default function InsightsTab() {
         });
 
         setStats({ total, shadows, focus });
+        setProfile(getProfile() as UserProfile);
     }, []);
 
-    if (!stats) return <div className="text-center py-20 opacity-50">אין מספיק נתונים לניתוח עדיין...</div>;
+    if (!stats || !profile) return <div className="text-center py-20 opacity-50">אין מספיק נתונים לניתוח עדיין...</div>;
 
     const renderBar = (label: string, count: number, total: number, color: string) => {
         const pct = Math.round((count / total) * 100);
@@ -51,10 +52,39 @@ export default function InsightsTab() {
 
     return (
         <div className="space-y-6 pt-4 pb-20 px-4">
-            <div className="space-y-1">
-                <h1 className="text-2xl font-serif font-bold text-primary">מבט על הנפש</h1>
-                <p className="text-sm text-text-secondary">זיהוי דפוסים ותנועות פנימיות</p>
+            <div className="text-center space-y-2">
+                <div className="text-sm text-text-secondary">חדר מצב</div>
+                <h1 className="text-3xl font-serif font-bold text-primary">תובנות וחזון</h1>
             </div>
+
+            {/* Macro Goals (The Compass) */}
+            {(profile?.north_star_vision || profile?.period_goal) && (
+                <div className="bg-gradient-to-br from-indigo-500/10 to-purple-600/10 p-6 rounded-3xl border border-indigo-500/20 shadow-sm relative overflow-hidden">
+                    <div className="absolute -top-10 -right-10 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl" />
+                    
+                    {profile.north_star_vision && (
+                        <div className="mb-5 relative z-10">
+                            <h3 className="text-xs font-bold text-indigo-500 uppercase tracking-wider flex items-center gap-1.5 mb-2">
+                                <Compass className="w-4 h-4" /> כוכב הצפון (חזון העל)
+                            </h3>
+                            <p className="font-serif text-lg text-text-primary leading-relaxed">
+                                {profile.north_star_vision}
+                            </p>
+                        </div>
+                    )}
+                    
+                    {profile.period_goal && (
+                        <div className="relative z-10">
+                            <h3 className="text-xs font-bold text-purple-600 uppercase tracking-wider flex items-center gap-1.5 mb-2">
+                                <Target className="w-4 h-4" /> המטרה התקופתית
+                            </h3>
+                            <p className="text-text-secondary leading-relaxed font-medium">
+                                {profile.period_goal}
+                            </p>
+                        </div>
+                    )}
+                </div>
+            )}
 
             <div className="grid grid-cols-2 gap-4">
                 <div className="bg-card p-4 rounded-2xl border border-gray-100 shadow-sm text-center">
@@ -97,21 +127,21 @@ export default function InsightsTab() {
                 </div>
             </div>
 
-            <ResourceBuilder />
+            <ResourceBuilder initialProfile={profile} />
         </div>
     );
 }
 
-function ResourceBuilder() {
-    const [profile, setProfile] = useState<any>(null);
+function ResourceBuilder({ initialProfile }: { initialProfile: UserProfile | null }) {
+    const [profile, setProfile] = useState<UserProfile | null>(initialProfile);
     const [strengthsInput, setStrengthsInput] = useState('');
     const [successInput, setSuccessInput] = useState('');
-    const [activeTab, setActiveTab] = useState<'strengths' | 'success'>('strengths');
+    const [activeTab, setActiveTab] = useState<'success' | 'strengths'>('success');
+    const [isAdding, setIsAdding] = useState(false);
 
     useEffect(() => {
-        const { getProfile } = require('@/lib/storage');
-        setProfile(getProfile());
-    }, []);
+        if (!profile) setProfile(getProfile() as UserProfile);
+    }, [profile]);
 
     const handleAdd = (type: 'strengths' | 'success') => {
         if (!profile) return;
@@ -130,7 +160,7 @@ function ResourceBuilder() {
         }
 
         const { saveProfile } = require('@/lib/storage');
-        saveProfile(updatedProfile);
+        saveProfile(updatedProfile as any);
         setProfile(updatedProfile);
         // Toast could go here
     };
@@ -143,7 +173,7 @@ function ResourceBuilder() {
             updatedProfile.success_bank = updatedProfile.success_bank.filter((_: any, i: number) => i !== index);
         }
         const { saveProfile } = require('@/lib/storage');
-        saveProfile(updatedProfile);
+        saveProfile(updatedProfile as any);
         setProfile(updatedProfile);
     };
 
@@ -154,54 +184,77 @@ function ResourceBuilder() {
         : (profile.success_bank || []);
 
     return (
-        <div className="bg-card p-5 rounded-2xl border border-gray-100 shadow-sm mt-8">
-            <h3 className="font-bold text-lg mb-4 text-primary">בנק המשאבים (CBT)</h3>
-
-            <div className="flex bg-gray-50 p-1 rounded-xl mb-4">
-                <button
-                    onClick={() => setActiveTab('strengths')}
-                    className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${activeTab === 'strengths' ? 'bg-white shadow-sm text-primary' : 'text-gray-400'}`}
+        <div className="bg-card p-6 rounded-3xl border border-primary/10 shadow-lg shadow-primary/5 mt-8">
+            <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-2">
+                    <Sparkles className="w-6 h-6 text-amber-500" />
+                    <h3 className="font-bold text-xl font-serif text-primary">ארסנל הכוחות (CBT)</h3>
+                </div>
+                <button 
+                    onClick={() => setIsAdding(!isAdding)}
+                    className="p-2 bg-surface-bg rounded-xl hover:bg-border-muted transition-colors"
                 >
-                    הכוחות שלי
-                </button>
-                <button
-                    onClick={() => setActiveTab('success')}
-                    className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${activeTab === 'success' ? 'bg-white shadow-sm text-primary' : 'text-gray-400'}`}
-                >
-                    ההצלחות שלי
+                    <Plus className="w-5 h-5 text-text-secondary" />
                 </button>
             </div>
 
-            <div className="space-y-4">
-                <div>
+            <p className="text-sm text-text-secondary mb-6">
+                המאגר הזה נבנה אוטומטית מיומני הערב שלך, ומשמש את המערכת כדי להזכיר לך את היכולות שלך בבוקר.
+            </p>
+
+            <div className="flex bg-surface-bg p-1 rounded-xl mb-6">
+                <button
+                    onClick={() => setActiveTab('success')}
+                    className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${activeTab === 'success' ? 'bg-white shadow-sm text-primary' : 'text-text-secondary hover:text-text-primary'}`}
+                >
+                    ההצלחות שלי
+                </button>
+                <button
+                    onClick={() => setActiveTab('strengths')}
+                    className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${activeTab === 'strengths' ? 'bg-white shadow-sm text-primary' : 'text-text-secondary hover:text-text-primary'}`}
+                >
+                    יכולות שהפעלתי
+                </button>
+            </div>
+
+            {isAdding && (
+                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="space-y-3 mb-6">
                     <textarea
-                        className="w-full p-3 rounded-xl border border-gray-200 h-24 resize-none focus:ring-2 focus:ring-primary outline-none text-sm"
-                        placeholder={activeTab === 'strengths' ? "הדבק כאן רשימת יכולות (כל שורה יכולה חדשה)..." : "הדבק כאן רשימת הצלחות..."}
+                        className="w-full p-4 rounded-xl border border-border-muted h-24 resize-none focus:ring-2 focus:ring-primary/20 outline-none text-sm bg-surface-bg"
+                        placeholder={activeTab === 'strengths' ? "הוסף יכולת ידנית..." : "הוסף הצלחה ידנית..."}
                         value={activeTab === 'strengths' ? strengthsInput : successInput}
                         onChange={e => activeTab === 'strengths' ? setStrengthsInput(e.target.value) : setSuccessInput(e.target.value)}
                     />
                     <button
                         onClick={() => handleAdd(activeTab)}
-                        className="mt-2 w-full py-2 bg-primary/10 text-primary font-bold rounded-lg hover:bg-primary/20 transition-colors"
+                        className="w-full py-3 bg-primary text-white font-bold rounded-xl hover:bg-primary/90 transition-colors shadow-sm"
                     >
-                        הוסף לרשימה
+                        שמור במאגר
                     </button>
-                </div>
+                </motion.div>
+            )}
 
-                <div className="space-y-2 max-h-60 overflow-y-auto">
-                    {currentList.length === 0 && <div className="text-center text-sm text-gray-400 py-4">המאגר ריק. התחל למלא אותו!</div>}
-                    {currentList.map((item: string, idx: number) => (
-                        <div key={idx} className="flex justify-between items-center p-3 bg-gray-50 rounded-xl group">
-                            <span className="text-sm font-medium">{item}</span>
-                            <button
-                                onClick={() => handleDelete(activeTab, idx)}
-                                className="text-gray-300 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity px-2"
-                            >
-                                ×
-                            </button>
-                        </div>
-                    ))}
-                </div>
+            <div className="space-y-3 max-h-96 overflow-y-auto pr-1 custom-scrollbar">
+                {currentList.length === 0 && (
+                    <div className="text-center text-sm text-text-muted py-8 border-2 border-dashed border-border-muted rounded-xl">
+                        המאגר ריק. מלא את היומן בערב כדי לבנות אותו!
+                    </div>
+                )}
+                {currentList.map((item: string, idx: number) => (
+                    <motion.div 
+                        initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.05 }}
+                        key={idx} 
+                        className="flex justify-between items-center p-4 bg-surface-bg border border-border-muted/50 rounded-2xl group hover:border-primary/30 transition-colors"
+                    >
+                        <span className="text-sm font-medium text-text-primary leading-relaxed">{item}</span>
+                        <button
+                            onClick={() => handleDelete(activeTab, idx)}
+                            className="text-text-muted hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity p-2 -ml-2"
+                        >
+                            <Trash2 className="w-4 h-4" />
+                        </button>
+                    </motion.div>
+                ))}
             </div>
         </div>
     );
