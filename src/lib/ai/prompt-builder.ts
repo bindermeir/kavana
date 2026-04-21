@@ -79,24 +79,28 @@ export function buildSystemPrompt(profile: UserProfile): string {
     - **Metaphor Preference**: Use metaphors related to: ${metaphors} and ${profile.tradition_connection_style?.join(', ') || 'General'}.
 
     **DEEP USER CONTEXT (Macro to Micro):**
-    - **North Star (1-5 Year Vision)**: "${profile.north_star_vision || 'To find peace and purpose'}"
-    - **Current Period Goal**: "${profile.period_goal || 'General progress'}"
+    - **Future Vision (1-5 Year Vision)**: "${profile.future_vision || 'To find peace and purpose'}"
+    - **Current Goal (Period Goal)**: "${profile.current_goal || 'General progress'}"
+    - **Yearly Intention**: "${profile.yearly_intention || 'None'}"
     - **Core Values**: ${profile.core_values?.join(', ') || 'Balance'}
     - **Current State**: Feeling "${profile.current_state}" in life.
-    - **Emotional Focus**: Needs attention on "${profile.emotional_state_focus}".
+    - **Emotional Focus**: Needs attention on "${profile.emotion_needing_attention}".
+    - **Belief System**: ${profile.belief_system}
+    - **Tradition Connection**: ${profile.cultural_connections?.join(', ')}
+    - **Reference Style**: ${profile.cultural_reference_style?.join(', ')}
+    - **Prayer Meaning**: ${profile.prayer_meaning?.join(', ')}
     
     **CBT RESOURCE BANK (Internal & External Proof):**
     - **Strengths (Yesh Bi - "There is in me"):**
-      ${(profile.personal_strengths || []).map(s => `* "${s}"`).join('\n      ')}
-      - *Instruction*: Refer to these as INHERENT POWERS. Use phrasing like: "יש בך את ה[חוזקה]..." (You have [strength] in you).
+      ${(profile.personal_abilities || []).map(s => `* "${s}"`).join('\n      ')}
+      - *Instruction*: Refer to these as INHERENT POWERS.
     
     - **Successes (Hitzlachti - "I succeeded"):**
-      ${(profile.success_bank || []).map(s => `* "${s}"`).join('\n      ')}
-      - *Instruction*: Refer to these as UNDENIABLE EVIDENCE. Use phrasing like: "כשם שהצלחת ב[הצלחה], כך..." (Just as you succeeded in [success], so too...).
-      - *Goal*: Use past wins to dismantle current self-doubt.
+      * "${profile.proud_achievement}"
+      - *Instruction*: Refer to this as UNDENIABLE EVIDENCE.
     
-    - **Relationship Context**: Status: ${profile.relationship_status}. seeking: ${profile.relationship_desire?.join(', ')}.
-    - **Career/Money Context**: Phase: ${profile.career_money_status}. Relation to abundance: ${profile.money_relationship}.
+    - **Relationship Context**: Status: ${profile.relationship_status}. Desire: ${profile.relationship_desire?.join(', ')}. Approach: ${profile.relationship_approach_in_texts}.
+    - **Career/Money Context**: Phase: ${profile.work_money_place}. Relation to abundance: ${profile.abundance_relationship}.
 
     **PSYCHO-SPIRITUAL & VOICE DIMENSIONS:**
     - **Processing Channel**: ${profile.processing_style || 'Balanced'} (If 'head': logic/perspective. 'heart': emotion/empathy. 'body': grounding/action).
@@ -189,10 +193,10 @@ export function buildUserPrompt(context: PromptContext): string {
     1. **Grounding**: Start by acknowledging the *now* (morning light, current feeling, and today's specific friction). Let them breathe into it.
     2. **Continuity**: If there is a recurring theme in the history, acknowledge progress.
     3. **Connection**: Weave in the "Weekly Energy" (${getDailyContext().weeklyEnergy.name}) subtly.
-    4. **The Bridge**: Connect today's friction ("${currentFocus}") to their Macro Goal ("${profile.north_star_vision || 'their journey'}"). Show them that passing today's hurdle is building the foundation for their 5-year vision.
+    4. **The Bridge**: Connect today's friction ("${currentFocus}") to their Future Vision ("${profile.future_vision || 'their journey'}"). Show them that passing today's hurdle is building the foundation for their 5-year vision.
     5. **Evidence-Based Power (CBT Focus)**: 
-       - Use a STRENGTH ("Yesh Bi"): "זכור את ה[חוזקה] שקיימת בך..."
-       - Use a SUCCESS ("Hitzlachti"): "כשם שהצלחת ב[הצלחה], כך גם היום..."
+       - Use a STRENGTH ("Yesh Bi"): "זכור את ה[יכולת] שקיימת בך..."
+       - Use a SUCCESS ("Hitzlachti"): "כשם שהצלחת ב[הישג], כך גם היום..."
     6. **Declaration**: End with a meditative, spiritual declaration of intent. It should sound like a quiet, powerful prayer from within, not a coach shouting instructions.
     
     **Output:**

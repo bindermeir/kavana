@@ -1,15 +1,16 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { getPrayers, getJournalEntries, PrayerEntry, JournalEntry } from '@/lib/storage';
+import { getPrayers, getJournalEntries, PrayerEntry, JournalEntry, getProfile } from '@/lib/storage';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Heart, Calendar, Copy, Share2, X, Sparkles, Moon } from 'lucide-react';
+import { Heart, Calendar, Copy, Share2, X, Sparkles, Moon, Filter, BookOpen } from 'lucide-react';
 import { toast } from 'sonner';
+import { getZadokDate } from '@/lib/calendar/zadokCalendar';
 
 type ViewMode = 'all' | 'prayers' | 'journal' | 'favorites';
 type TimelineItem =
-    | { type: 'prayer'; data: PrayerEntry; dateObj: Date }
-    | { type: 'journal'; data: JournalEntry; dateObj: Date };
+    | { type: 'prayer'; data: PrayerEntry; dateObj: Date; zadok: string }
+    | { type: 'journal'; data: JournalEntry; dateObj: Date; zadok: string };
 
 export default function PrayerBookTab() {
     const [items, setItems] = useState<TimelineItem[]>([]);
@@ -18,8 +19,19 @@ export default function PrayerBookTab() {
     const [viewMode, setViewMode] = useState<ViewMode>('all');
 
     useEffect(() => {
-        const prayers = getPrayers().map(p => ({ type: 'prayer' as const, data: p, dateObj: new Date(p.date) }));
-        const journal = getJournalEntries().map(j => ({ type: 'journal' as const, data: j, dateObj: new Date(j.date) }));
+        const prayers = getPrayers().map(p => ({ 
+            type: 'prayer' as const, 
+            data: p, 
+            dateObj: new Date(p.date),
+            zadok: getZadokDate(new Date(p.date)).displayText
+        }));
+        const journal = getJournalEntries().map(j => ({ 
+            type: 'journal' as const, 
+            data: j, 
+            dateObj: new Date(j.date),
+            zadok: getZadokDate(new Date(j.date)).displayText
+        }));
+        
         const combined = [...prayers, ...journal].sort((a, b) => b.dateObj.getTime() - a.dateObj.getTime());
         setItems(combined);
 
@@ -36,25 +48,7 @@ export default function PrayerBookTab() {
 
         setFavorites(newFavorites);
         localStorage.setItem('kavana_favorites', JSON.stringify(newFavorites));
-
-        if (newFavorites.includes(prayerId)) {
-            toast.success('נוסף למועדפים ❤️');
-        }
-    };
-
-    const copyPrayer = (content: string) => {
-        navigator.clipboard.writeText(content);
-        toast.success('הטקסט הועתק!');
-    };
-
-    const sharePrayer = async (prayer: PrayerEntry) => {
-        if (navigator.share) {
-            try {
-                await navigator.share({ title: 'כוונה יומית', text: prayer.content });
-            } catch (e) { /* cancelled */ }
-        } else {
-            copyPrayer(prayer.content);
-        }
+        toast.success(newFavorites.includes(prayerId) ? 'נוסף למועדפים ❤️' : 'הוסר מהמועדפים');
     };
 
     const formatDate = (date: Date) => {
@@ -73,115 +67,76 @@ export default function PrayerBookTab() {
         return true;
     });
 
-    const prayerCount = items.filter(i => i.type === 'prayer').length;
-    const journalCount = items.filter(i => i.type === 'journal').length;
-    const favCount = favorites.length;
-
     if (items.length === 0) {
         return (
-            <div className="text-center py-12">
-                <div className="text-4xl mb-4">📖</div>
-                <h2 className="text-xl font-bold mb-2">הספר שלך ריק</h2>
-                <p className="text-text-secondary">צור את הכוונה הראשונה שלך בטאב "בוקר"</p>
+            <div className="text-center py-20 space-y-4 animate-in fade-in">
+                <div className="w-20 h-20 bg-black/5 rounded-full flex items-center justify-center mx-auto text-text-secondary">
+                    <BookOpen className="w-10 h-10 opacity-20" />
+                </div>
+                <h2 className="text-2xl font-bold text-sacred">הספר עדיין ריק</h2>
+                <p className="text-text-secondary italic">הכוונות והאספים שלך יישמרו כאן באופן אוטומטי</p>
             </div>
         );
     }
 
     return (
-        <div className="space-y-4 pb-20">
-            <div className="flex items-center justify-between mb-2">
-                <h1 className="text-xl sm:text-2xl font-serif font-bold">📖 הספר שלי</h1>
-            </div>
+        <div className="space-y-8 pt-4 pb-24">
+            <header className="text-center space-y-1">
+                <h1 className="text-4xl font-bold text-sacred">הספר שלי</h1>
+                <p className="text-text-secondary italic">תיעוד המסע הרוחני שלך</p>
+            </header>
 
             {/* Filter Tabs */}
-            <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1">
-                <button
-                    onClick={() => setViewMode('all')}
-                    className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium whitespace-nowrap transition-colors ${viewMode === 'all' ? 'bg-primary text-white' : 'bg-surface text-text-secondary'
-                        }`}
-                >
-                    הכל ({items.length})
-                </button>
-                <button
-                    onClick={() => setViewMode('prayers')}
-                    className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium whitespace-nowrap transition-colors flex items-center gap-1 ${viewMode === 'prayers' ? 'bg-orange-500 text-white' : 'bg-surface text-text-secondary'
-                        }`}
-                >
-                    <Sparkles className="w-3 h-3" /> כוונות ({prayerCount})
-                </button>
-                <button
-                    onClick={() => setViewMode('journal')}
-                    className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium whitespace-nowrap transition-colors flex items-center gap-1 ${viewMode === 'journal' ? 'bg-indigo-500 text-white' : 'bg-surface text-text-secondary'
-                        }`}
-                >
-                    <Moon className="w-3 h-3" /> יומן ({journalCount})
-                </button>
-                <button
-                    onClick={() => setViewMode('favorites')}
-                    className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium whitespace-nowrap transition-colors flex items-center gap-1 ${viewMode === 'favorites' ? 'bg-red-500 text-white' : 'bg-surface text-text-secondary'
-                        }`}
-                >
-                    <Heart className="w-3 h-3" /> מועדפים ({favCount})
-                </button>
+            <div className="flex bg-black/5 p-1 rounded-2xl gap-1">
+                {(['all', 'prayers', 'journal', 'favorites'] as ViewMode[]).map(mode => (
+                    <button
+                        key={mode}
+                        onClick={() => setViewMode(mode)}
+                        className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all ${viewMode === mode ? 'bg-white shadow-sm text-accent-active' : 'text-text-secondary'}`}
+                    >
+                        {mode === 'all' ? 'הכל' : mode === 'prayers' ? 'כוונות' : mode === 'journal' ? 'אספים' : 'מועדפים'}
+                    </button>
+                ))}
             </div>
 
-            {/* Timeline Grid */}
-            <div className="space-y-3">
+            {/* Timeline List */}
+            <div className="space-y-4">
                 {filteredItems.map((item, idx) => (
                     <motion.div
-                        key={`${item.type}-${item.type === 'prayer' ? item.data.id : idx}`}
-                        layout
+                        key={idx}
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: idx * 0.03 }}
-                        className={`p-4 rounded-xl border shadow-sm relative group cursor-pointer ${item.type === 'prayer'
-                            ? 'bg-card border-primary/20 hover:shadow-md'
-                            : 'bg-indigo-500/10 dark:bg-indigo-500/20 border-indigo-500/20'
-                            }`}
+                        transition={{ delay: idx * 0.05 }}
                         onClick={() => item.type === 'prayer' && setSelectedPrayer(item.data)}
+                        className={`sacred-card group cursor-pointer ${item.type === 'journal' ? 'bg-accent-active/5 border-accent-active/10' : ''}`}
                     >
-                        {/* Favorite Button (prayers only) */}
-                        {item.type === 'prayer' && (
-                            <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    toggleFavorite(item.data.id);
-                                }}
-                                className="absolute top-2 left-2 z-10"
-                            >
-                                <Heart
-                                    className={`w-4 h-4 sm:w-5 sm:h-5 transition-colors ${favorites.includes(item.data.id)
-                                        ? 'fill-red-500 text-red-500'
-                                        : 'text-gray-300 hover:text-red-300'
-                                        }`}
-                                />
-                            </button>
-                        )}
-
-                        {/* Header */}
-                        <div className="flex items-center gap-2 mb-2">
-                            <div className={`text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded-full flex items-center gap-1 ${item.type === 'prayer' ? 'text-orange-700 bg-orange-100' : 'text-indigo-700 bg-indigo-100'
-                                }`}>
-                                {item.type === 'prayer' ? <Sparkles className="w-2.5 h-2.5 sm:w-3 sm:h-3" /> : <Moon className="w-2.5 h-2.5 sm:w-3 sm:h-3" />}
-                                {formatDate(item.dateObj)}
+                        <div className="flex justify-between items-start mb-3">
+                            <div className="space-y-1">
+                                <p className="text-[10px] font-bold text-accent-active uppercase tracking-widest flex items-center gap-2">
+                                    {item.type === 'prayer' ? <Sparkles className="w-3 h-3" /> : <Moon className="w-3 h-3" />}
+                                    {formatDate(item.dateObj)}
+                                </p>
+                                <p className="text-[9px] text-text-secondary italic">{item.zadok}</p>
                             </div>
-                            {item.type === 'prayer' && item.data.focus_area && (
-                                <span className="text-[10px] sm:text-xs px-2 py-0.5 bg-primary/10 text-primary rounded-full">
-                                    {item.data.focus_area}
-                                </span>
+                            {item.type === 'prayer' && (
+                                <button 
+                                    onClick={(e) => { e.stopPropagation(); toggleFavorite(item.data.id); }}
+                                    className="p-2 -mr-2"
+                                >
+                                    <Heart className={`w-5 h-5 transition-colors ${favorites.includes(item.data.id) ? 'fill-rose-500 text-rose-500' : 'text-text-secondary/30 hover:text-rose-300'}`} />
+                                </button>
                             )}
                         </div>
 
-                        {/* Content */}
                         {item.type === 'prayer' ? (
-                            <p className="text-sm leading-relaxed line-clamp-3 font-serif">
+                            <p className="text-lg leading-relaxed text-sacred line-clamp-3">
                                 {item.data.content}
                             </p>
                         ) : (
-                            <div className="text-sm space-y-1">
-                                <div className="font-medium text-indigo-900">✨ {item.data.daily_success}</div>
+                            <div className="space-y-2">
+                                <p className="text-lg font-bold text-sacred">✨ {item.data.daily_success}</p>
                                 {item.data.declaration && (
-                                    <div className="text-indigo-800/80 italic text-xs">"{item.data.declaration}"</div>
+                                    <p className="text-sm text-text-secondary italic">"{item.data.declaration}"</p>
                                 )}
                             </div>
                         )}
@@ -189,69 +144,35 @@ export default function PrayerBookTab() {
                 ))}
             </div>
 
-            {/* Full Prayer Modal */}
+            {/* Prayer Modal */}
             <AnimatePresence>
                 {selectedPrayer && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
-                        onClick={() => setSelectedPrayer(null)}
-                    >
-                        <motion.div
-                            initial={{ scale: 0.9, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            exit={{ scale: 0.9, opacity: 0 }}
-                            className="bg-card rounded-2xl p-5 sm:p-6 max-w-lg w-full max-h-[80vh] overflow-y-auto relative"
-                            onClick={(e) => e.stopPropagation()}
-                        >
-                            <button
-                                onClick={() => setSelectedPrayer(null)}
-                                className="absolute top-3 left-3 sm:top-4 sm:left-4 p-1"
-                            >
-                                <X className="w-5 h-5 text-gray-400" />
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setSelectedPrayer(null)} className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+                        <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="relative w-full max-w-lg sacred-card p-8 overflow-y-auto max-h-[85vh]">
+                            <button onClick={() => setSelectedPrayer(null)} className="absolute top-4 left-4 p-2 text-text-secondary">
+                                <X className="w-6 h-6" />
                             </button>
-
-                            <div className="flex items-center gap-2 text-xs sm:text-sm text-text-secondary mb-4">
-                                <Calendar className="w-3 h-3 sm:w-4 sm:h-4" />
-                                {formatDate(new Date(selectedPrayer.date))}
-                                {selectedPrayer.focus_area && (
-                                    <span className="px-2 py-0.5 bg-primary/10 text-primary text-xs rounded-full">
-                                        {selectedPrayer.focus_area}
-                                    </span>
-                                )}
+                            
+                            <div className="text-center space-y-1 mb-8">
+                                <p className="text-[10px] font-bold text-accent-active uppercase tracking-widest">{formatDate(new Date(selectedPrayer.date))}</p>
+                                <p className="text-xs text-text-secondary italic">{getZadokDate(new Date(selectedPrayer.date)).displayText}</p>
                             </div>
 
-                            <p className="text-base sm:text-lg leading-relaxed font-serif whitespace-pre-wrap mb-6">
+                            <p className="text-xl leading-relaxed text-sacred whitespace-pre-wrap mb-8 text-center font-light">
                                 {selectedPrayer.content}
                             </p>
 
-                            <div className="flex gap-2">
-                                <button
-                                    onClick={() => copyPrayer(selectedPrayer.content)}
-                                    className="flex-1 py-2 rounded-lg bg-surface text-text-secondary flex items-center justify-center gap-2 text-xs sm:text-sm font-medium hover:opacity-80 transition-colors"
-                                >
-                                    <Copy className="w-3 h-3 sm:w-4 sm:h-4" /> העתק
+                            <div className="flex gap-3">
+                                <button onClick={() => { navigator.clipboard.writeText(selectedPrayer.content); toast.success('הועתק!'); }} className="btn-ghost flex-1 py-3 flex items-center justify-center gap-2">
+                                    <Copy className="w-4 h-4" /> העתק
                                 </button>
-                                <button
-                                    onClick={() => sharePrayer(selectedPrayer)}
-                                    className="flex-1 py-2 rounded-lg bg-primary text-white flex items-center justify-center gap-2 text-xs sm:text-sm font-medium hover:bg-primary/90 transition-colors"
-                                >
-                                    <Share2 className="w-3 h-3 sm:w-4 sm:h-4" /> שתף
-                                </button>
-                                <button
-                                    onClick={() => toggleFavorite(selectedPrayer.id)}
-                                    className={`px-3 sm:px-4 py-2 rounded-lg flex items-center justify-center transition-colors ${favorites.includes(selectedPrayer.id)
-                                        ? 'bg-red-100 text-red-500'
-                                        : 'bg-gray-100 text-gray-400'
-                                        }`}
-                                >
-                                    <Heart className={`w-4 h-4 sm:w-5 sm:h-5 ${favorites.includes(selectedPrayer.id) ? 'fill-current' : ''}`} />
+                                <button onClick={() => toggleFavorite(selectedPrayer.id)} className={`px-5 py-3 rounded-xl border flex items-center justify-center transition-colors ${favorites.includes(selectedPrayer.id) ? 'bg-rose-50 border-rose-100 text-rose-500' : 'border-border-color text-text-secondary'}`}>
+                                    <Heart className={`w-5 h-5 ${favorites.includes(selectedPrayer.id) ? 'fill-current' : ''}`} />
                                 </button>
                             </div>
                         </motion.div>
-                    </motion.div>
+                    </div>
                 )}
             </AnimatePresence>
         </div>

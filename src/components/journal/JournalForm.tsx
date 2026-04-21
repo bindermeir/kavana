@@ -1,62 +1,70 @@
 "use client";
 
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Save, Plus, X, Heart, Star, Zap, PenTool, Moon, Sparkles } from 'lucide-react';
-import { saveJournalEntry, JournalEntry, getProfile, saveProfile } from '@/lib/storage';
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Heart, Star, Zap, PenTool, Moon, Sparkles, MessageCircle, Loader2 } from 'lucide-react';
+import { saveJournalEntry, JournalEntry, getProfile, saveTask, saveOffload, Offload, UserProfile } from '@/lib/storage';
 import { toast } from 'sonner';
 
 export default function JournalForm() {
-    const [step, setStep] = useState(0);
+    const [mode, setMode] = useState<'journal' | 'offload'>('journal');
+    const [profile, setProfile] = useState<UserProfile | null>(null);
     const [entry, setEntry] = useState<Partial<JournalEntry>>({
-        gratitude_items: ['', '', ''],
+        gratitude_items: '',
         daily_success: '',
         capacity_used: '',
         declaration: '',
-        date: new Date().toISOString()
+        date: new Date().toISOString().split('T')[0]
     });
+    
+    const [offloadContent, setOffloadContent] = useState('');
+    const [offloadResponse, setOffloadResponse] = useState('');
+    const [isProcessing, setIsProcessing] = useState(false);
     const [isSaved, setIsSaved] = useState(false);
-    const [isGenerating, setIsGenerating] = useState(false);
     const [eveningReflection, setEveningReflection] = useState('');
 
-    const updateGratitude = (index: number, value: string) => {
-        const newItems = [...(entry.gratitude_items || [])];
-        newItems[index] = value;
-        setEntry(prev => ({ ...prev, gratitude_items: newItems }));
-    };
+    useEffect(() => {
+        const fetchProfile = async () => {
+            const p = await getProfile();
+            setProfile(p);
+        };
+        fetchProfile();
+    }, []);
 
-    const handleSave = async () => {
+    const handleSaveJournal = async () => {
         if (!entry.daily_success) {
-            toast.error('אנא ציין לפחות הצלחה אחת היום');
+            toast.error('אנא ציין הצלחה קונקרטית אחת מהיום');
             return;
         }
 
-        setIsGenerating(true);
-
+        setIsProcessing(true);
         const finalEntry = {
             ...entry,
             id: crypto.randomUUID(),
-            user_id: 'current-user',
-            date: new Date().toISOString()
+            date: new Date().toISOString().split('T')[0]
         } as JournalEntry;
 
-        // 1. Save to Journal
-        saveJournalEntry(finalEntry);
+        await saveJournalEntry(finalEntry);
 
-        // 2. Auto-sync to CBT Bank
-        const profile = getProfile();
-        if (profile) {
-            let updatedProfile = { ...profile };
-            if (finalEntry.daily_success) {
-                updatedProfile.success_bank = [...(updatedProfile.success_bank || []), finalEntry.daily_success];
-            }
-            if (finalEntry.capacity_used) {
-                updatedProfile.personal_strengths = [...(updatedProfile.personal_strengths || []), finalEntry.capacity_used];
-            }
-            saveProfile(updatedProfile);
+        if (finalEntry.daily_success) {
+            await saveTask({
+                id: crypto.randomUUID(),
+                task_type: 'success_list',
+                content: finalEntry.daily_success,
+                completed: true,
+                date: finalEntry.date
+            });
+        }
+        if (finalEntry.capacity_used) {
+            await saveTask({
+                id: crypto.randomUUID(),
+                task_type: 'capability_list',
+                content: finalEntry.capacity_used,
+                completed: true,
+                date: finalEntry.date
+            });
         }
 
-        // 3. Generate Evening Reflection
         try {
             const res = await fetch('/api/generate-evening', {
                 method: 'POST',
@@ -64,37 +72,36 @@ export default function JournalForm() {
                 body: JSON.stringify({ profile, journal: finalEntry })
             });
             const data = await res.json();
-            if (data.reflection) {
-                setEveningReflection(data.reflection);
-            }
+            if (data.reflection) setEveningReflection(data.reflection);
         } catch (e) {
-            console.error(e);
-            toast.error('לא הצלחנו לייצר סיכום אוטומטי, אבל היומן נשמר.');
+            toast.error('היומן נשמר, אך אירעה שגיאה בייצור התפילה');
         }
 
-        setIsGenerating(false);
+        setIsProcessing(false);
         setIsSaved(true);
     };
 
-    if (isGenerating) {
+    const handleOffload = async () => {
+        if (!offloadContent.trim()) return;
+        setIsProcessing(true);
+        const offload: Omit<Offload, 'user_id'> = {
+            id: crypto.randomUUID(),
+            content: offloadContent,
+            date: new Date().toISOString().split('T')[0],
+            timestamp: new Date().toISOString()
+        };
+        setOffloadResponse("תודה ששיחררת את זה. הדיו ספג את הכל והפך את זה לכוונה שקטה.");
+        await saveOffload(offload);
+        setIsProcessing(false);
+    };
+
+    if (isProcessing) {
         return (
             <div className="flex flex-col items-center justify-center py-24 space-y-6">
-                <div className="relative w-24 h-24 flex items-center justify-center">
-                    <motion.div 
-                        animate={{ rotate: 360 }} 
-                        transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
-                        className="absolute inset-0 rounded-full border-t-2 border-primary border-r-2 opacity-50"
-                    />
-                    <motion.div 
-                        animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }} 
-                        transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                    >
-                        <Moon className="w-10 h-10 text-primary" />
-                    </motion.div>
-                </div>
-                <div className="text-center space-y-2">
-                    <h2 className="text-xl font-bold font-serif gradient-text">מעבד את האסיף היומי...</h2>
-                    <p className="text-sm text-text-secondary">מלקט את ההצלחות שלך לכדי סיכום לילה</p>
+                <Loader2 className="w-12 h-12 text-accent-active animate-spin" />
+                <div className="text-center">
+                    <h2 className="text-2xl font-bold text-sacred">מעבד את האסיף...</h2>
+                    <p className="text-sm text-text-secondary">מלקט את רגעי האור של היום</p>
                 </div>
             </div>
         );
@@ -102,129 +109,96 @@ export default function JournalForm() {
 
     if (isSaved) {
         return (
-            <div className="py-10 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-                <div className="text-center space-y-4">
-                    <motion.div
-                        initial={{ scale: 0 }} animate={{ scale: 1 }}
-                        className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mx-auto text-white shadow-lg shadow-indigo-500/20"
-                    >
-                        <Moon className="w-8 h-8 fill-current" />
-                    </motion.div>
-                    <h2 className="text-2xl font-serif font-bold text-primary">היומן נשמר. לילה טוב.</h2>
+            <div className="py-6 space-y-8 animate-in fade-in duration-700">
+                <div className="text-center space-y-3">
+                    <div className="w-16 h-16 bg-accent-active/10 rounded-full flex items-center justify-center mx-auto text-accent-active">
+                        <Moon className="w-8 h-8 flame-breathe" />
+                    </div>
+                    <h2 className="text-3xl font-bold text-sacred">האסיף נשמר</h2>
                 </div>
 
                 {eveningReflection && (
-                    <motion.div 
-                        initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
-                        className="bg-card p-6 rounded-3xl border border-primary/20 shadow-xl shadow-primary/5 relative overflow-hidden"
-                    >
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl" />
-                        <h3 className="text-sm font-bold text-primary mb-4 flex items-center gap-2">
-                            <Sparkles className="w-4 h-4" />
-                            תפילת לילה מותאמת עבורך:
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="sacred-card">
+                        <h3 className="text-xs font-bold text-accent-active mb-3 flex items-center gap-2">
+                            <Sparkles className="w-4 h-4" /> תפילת לילה:
                         </h3>
-                        <p className="text-lg leading-relaxed font-serif whitespace-pre-wrap text-text-primary relative z-10">
-                            {eveningReflection}
-                        </p>
+                        <p className="text-xl leading-relaxed text-sacred whitespace-pre-wrap font-light">{eveningReflection}</p>
                     </motion.div>
                 )}
 
-                <div className="text-center pt-8">
-                    <button
-                        onClick={() => { setIsSaved(false); setEveningReflection(''); setStep(0); setEntry({ gratitude_items: ['', '', ''] }); }}
-                        className="text-text-secondary text-sm font-medium hover:text-primary transition-colors"
-                    >
-                        כתוב רשומה נוספת
-                    </button>
-                </div>
+                <button onClick={() => { setIsSaved(false); setEveningReflection(''); setMode('journal'); }} className="btn-primary w-full py-4">כתוב שוב</button>
             </div>
         );
     }
 
     return (
-        <div className="pt-4 space-y-6">
-            <div className="text-center space-y-2 relative z-10">
-                <div className="text-sm text-text-secondary flex items-center justify-center gap-2">
-                    <Moon className="w-4 h-4" /> סיכום יום
-                </div>
-                <h1 className="text-3xl font-serif font-bold text-primary">האסיף היומי</h1>
+        <div className="space-y-8 pt-2">
+            <div className="flex p-1 bg-black/5 rounded-2xl gap-1">
+                <button onClick={() => setMode('journal')} className={`flex-1 py-3 rounded-xl text-sm font-bold transition-all ${mode === 'journal' ? 'bg-white shadow-sm text-accent-active' : 'text-text-secondary'}`}>אסיף יומי</button>
+                <button onClick={() => setMode('offload')} className={`flex-1 py-3 rounded-xl text-sm font-bold transition-all ${mode === 'offload' ? 'bg-white shadow-sm text-accent-active' : 'text-text-secondary'}`}>פריקה</button>
             </div>
 
-            <div className="space-y-6">
-                {/* 1. Gratitude */}
-                <Card icon={Heart} title="הודיה: מה עבד היום?" color="text-rose-500" bg="bg-rose-50">
-                    <div className="space-y-3">
-                        {[0, 1, 2].map(i => (
-                            <input
-                                key={i}
-                                type="text"
-                                placeholder={`הדבר ה-${i + 1} שעבד...`}
-                                value={entry.gratitude_items?.[i] || ''}
-                                onChange={e => updateGratitude(i, e.target.value)}
-                                className="w-full p-3 rounded-lg bg-card border border-gray-100 focus:ring-2 focus:ring-rose-200 outline-none transition-all placeholder:text-gray-300"
-                            />
-                        ))}
-                    </div>
-                </Card>
+            <AnimatePresence mode="wait">
+                {mode === 'journal' ? (
+                    <motion.div key="journal" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="space-y-8">
+                        <div className="text-center space-y-1">
+                            <h1 className="text-4xl font-bold text-sacred">אסיף יומי</h1>
+                            <p className="text-text-secondary italic">מלקטים את הטוב של היום</p>
+                        </div>
 
-                {/* 2. Success */}
-                <Card icon={Star} title="הצלחה קונקרטית אחת" color="text-amber-500" bg="bg-amber-50">
-                    <textarea
-                        placeholder="הצלחתי ל..."
-                        value={entry.daily_success || ''}
-                        onChange={e => setEntry(prev => ({ ...prev, daily_success: e.target.value }))}
-                        className="w-full p-3 rounded-lg bg-card border border-gray-100 focus:ring-2 focus:ring-amber-200 outline-none transition-all h-24 resize-none placeholder:text-gray-300"
-                    />
-                </Card>
+                        <div className="space-y-6">
+                            <Section icon={Heart} title="מה עבד היום? (הודיה)">
+                                <textarea className="input w-full h-24" placeholder="כתוב מה עבד היום..." value={entry.gratitude_items || ''} onChange={e => setEntry(prev => ({ ...prev, gratitude_items: e.target.value }))} />
+                            </Section>
 
-                {/* 3. Capacity Used */}
-                <Card icon={Zap} title="איזו יכולת שלי הפעלתי?" color="text-purple-500" bg="bg-purple-50">
-                    <input
-                        type="text"
-                        placeholder="למשל: סבלנות, יצירתיות, אומץ..."
-                        value={entry.capacity_used || ''}
-                        onChange={e => setEntry(prev => ({ ...prev, capacity_used: e.target.value }))}
-                        className="w-full p-3 rounded-lg bg-card border border-gray-100 focus:ring-2 focus:ring-purple-200 outline-none transition-all placeholder:text-gray-300"
-                    />
-                </Card>
+                            <Section icon={Star} title="הצלחה קונקרטית אחת">
+                                <textarea className="input w-full h-24" placeholder="הצלחתי ל..." value={entry.daily_success || ''} onChange={e => setEntry(prev => ({ ...prev, daily_success: e.target.value }))} />
+                            </Section>
 
-                {/* 4. Declaration */}
-                <Card icon={PenTool} title="הצהרת 'יש' לסיכום" color="text-teal-500" bg="bg-teal-50">
-                    <textarea
-                        placeholder="אני מלא ב..."
-                        value={entry.declaration || ''}
-                        onChange={e => setEntry(prev => ({ ...prev, declaration: e.target.value }))}
-                        className="w-full p-3 rounded-lg bg-card border border-gray-100 focus:ring-2 focus:ring-teal-200 outline-none transition-all h-20 resize-none placeholder:text-gray-300"
-                    />
-                </Card>
+                            <Section icon={Zap} title="יכולת שהפעלתי">
+                                <input className="input w-full" placeholder="סבלנות, יצירתיות..." value={entry.capacity_used || ''} onChange={e => setEntry(prev => ({ ...prev, capacity_used: e.target.value }))} />
+                            </Section>
 
-                <button
-                    onClick={handleSave}
-                    className="w-full py-4 bg-primary text-white rounded-2xl font-bold text-lg shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-2"
-                >
-                    <Save className="w-5 h-5" />
-                    שמור ביומן
-                </button>
-            </div>
+                            <Section icon={PenTool} title="הצהרת היש">
+                                <textarea className="input w-full h-20" placeholder="אני מלא ב..." value={entry.declaration || ''} onChange={e => setEntry(prev => ({ ...prev, declaration: e.target.value }))} />
+                            </Section>
+
+                            <button onClick={handleSaveJournal} className="btn-primary w-full py-4 text-xl shadow-xl">שמור ביומן</button>
+                        </div>
+                    </motion.div>
+                ) : (
+                    <motion.div key="offload" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="space-y-8">
+                        <div className="text-center space-y-1">
+                            <h1 className="text-4xl font-bold text-sacred">פריקה רגשית</h1>
+                            <p className="text-text-secondary italic">פשוט להוציא את מה שעל הלב</p>
+                        </div>
+
+                        <div className="sacred-card p-6 space-y-4">
+                            <textarea className="input w-full h-64 resize-none border-none shadow-none text-xl leading-relaxed" placeholder="פשוט תכתוב הכל..." value={offloadContent} onChange={e => setOffloadContent(e.target.value)} />
+                            {offloadResponse && (
+                                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-6 bg-accent-active/5 rounded-2xl italic text-sacred text-center">
+                                    "{offloadResponse}"
+                                </motion.div>
+                            )}
+                            <button onClick={handleOffload} disabled={!offloadContent.trim() || isProcessing} className="btn-primary w-full flex items-center justify-center gap-2 py-4">
+                                <MessageCircle className="w-5 h-5" /> לפרוק עכשיו
+                            </button>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }
 
-function Card({ icon: Icon, title, children, color, bg }: any) {
+function Section({ icon: Icon, title, children }: any) {
     return (
-        <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className={`p-1 rounded-2xl border border-gray-100 shadow-sm bg-white overflow-hidden`}
-        >
-            <div className={`flex items-center gap-3 p-4 pb-2 border-b border-gray-50/50 ${bg}`}>
-                <Icon className={`w-5 h-5 ${color}`} />
-                <h3 className="font-bold text-text-primary">{title}</h3>
+        <div className="sacred-card space-y-3">
+            <div className="flex items-center gap-2">
+                <Icon className="w-5 h-5 text-accent-active" />
+                <h3 className="font-bold text-sm text-sacred uppercase tracking-widest">{title}</h3>
             </div>
-            <div className="p-4 bg-white">
-                {children}
-            </div>
-        </motion.div>
+            {children}
+        </div>
     );
 }
