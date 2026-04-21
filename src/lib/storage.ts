@@ -81,6 +81,8 @@ export interface UserProfile {
 
     // Step 10: The Big Question
     perfect_text_vision?: string;
+    north_star_vision?: string; // 1-5 year macro goal
+    period_goal?: string; // Current month/quarter objective
 }
 
 export interface PrayerEntry {

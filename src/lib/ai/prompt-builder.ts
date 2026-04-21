@@ -8,6 +8,7 @@ export interface PromptContext {
     history?: {
         recentPrayers: any[];
         recentJournal: any[];
+        favoritePrayers?: any[];
     };
 }
 
@@ -35,11 +36,13 @@ const METAPHOR_BANKS: Record<string, string[]> = {
     nature: ["Roots", "Flowing water", "Wind", "Planting seeds"]
 };
 
-function getMetaphors(profile: UserProfile): string {
+function getMetaphors(profile: UserProfile, seasonMetaphor: string): string {
     const ideologies = profile.ideologies || [];
-    if (ideologies.includes('rational')) return METAPHOR_BANKS.tech.join(", ");
-    if (ideologies.includes('nature')) return METAPHOR_BANKS.nature.join(", ");
-    return METAPHOR_BANKS.general.join(", ");
+    let base = METAPHOR_BANKS.general.join(", ");
+    if (ideologies.includes('rational')) base = METAPHOR_BANKS.tech.join(", ");
+    if (ideologies.includes('nature')) base = METAPHOR_BANKS.nature.join(", ");
+    
+    return `Combine ${base} with the current seasonal energy of "${seasonMetaphor}". Use imagery that bridges their life focus with the season.`;
 }
 
 // --- Anti-Negation Filter --- //
@@ -59,7 +62,7 @@ export function buildSystemPrompt(profile: UserProfile): string {
     const beliefSystem = profile.belief_system || 'secular';
     const addressingMode = ADDRESSING_MODES[beliefSystem] || ADDRESSING_MODES.secular;
     const bannedWords = BANNED_KEYWORDS[beliefSystem] || [];
-    const metaphors = getMetaphors(profile);
+    const metaphors = getMetaphors(profile, dailyContext.season.metaphor);
     const identityTags = profile.identity_tags || [];
     const gender = profile.gender || 'neutral';
 
@@ -75,11 +78,12 @@ export function buildSystemPrompt(profile: UserProfile): string {
     - **Tone**: ${profile.tone || 'Supportive'}
     - **Metaphor Preference**: Use metaphors related to: ${metaphors} and ${profile.tradition_connection_style?.join(', ') || 'General'}.
 
-    **DEEP USER CONTEXT:**
+    **DEEP USER CONTEXT (Macro to Micro):**
+    - **North Star (1-5 Year Vision)**: "${profile.north_star_vision || 'To find peace and purpose'}"
+    - **Current Period Goal**: "${profile.period_goal || 'General progress'}"
     - **Core Values**: ${profile.core_values?.join(', ') || 'Balance'}
     - **Current State**: Feeling "${profile.current_state}" in life.
     - **Emotional Focus**: Needs attention on "${profile.emotional_state_focus}".
-    - **Intention**: "${profile.current_intention || 'Growth'}"
     
     **CBT RESOURCE BANK (Internal & External Proof):**
     - **Strengths (Yesh Bi - "There is in me"):**
@@ -123,10 +127,14 @@ export function buildSystemPrompt(profile: UserProfile): string {
     
     ${NEGATION_INSTRUCTIONS}
 
-    **Constraints:**
+    **Constraints & Tone (CRITICAL):**
+    - **Vibe & Energy**: THIS IS A PRAYER/MEDITATIVE INTENTION, NOT A COACHING TASK. It must feel spiritual, deep, and reflective. Do NOT write "Your goal is X so today you must do Y". Instead, weave the macro goal naturally into the spiritual intention (e.g. "As I walk the path toward [North Star], I pause today to...").
     - **Gender Grammar**: YOU MUST WRITE IN STRICT ${profile.gender === 'male' ? 'MASCULINE (לשון זכר)' : 'FEMININE (לשון נקבה)'} GRAMMAR.
     - **Banned Words**: Do NOT use these terms: ${bannedWords.join(", ")}.
-    - **Structure**: Split into 4-5 short, punchy paragraphs.
+    - **Structure**: You MUST structure the text in exactly 3 distinct parts (without writing the part names):
+      1. **Grounding (הכרה במציאות של היום)**: Acknowledge today's specific friction or feeling with deep empathy and breath.
+      2. **The Anchor & The Macro (העוגן והחזון)**: Remind them of their inherent strength ("Yesh Bi") or past success, and softly connect today's step to their larger "North Star" or "Period Goal". Show how today's friction is just part of the larger journey.
+      3. **The Movement (תנועה והתכווננות)**: End with a powerful, meditative intention for the day. A quiet resolve, not a to-do list.
     - **Tone**: ${profile.tone} (e.g., if "Stoic": be direct, firm. If "Soft": be gentle, flowing).
     
     **Output Goal:**
@@ -134,15 +142,7 @@ export function buildSystemPrompt(profile: UserProfile): string {
     `;
 }
 
-export interface PromptContext {
-    profile: UserProfile;
-    currentFocus: string;
-    mood?: string;
-    history?: {
-        recentPrayers: any[];
-        recentJournal: any[];
-    };
-}
+
 
 // ... (ADDRESSING_MODES, etc. remain the same) ...
 
@@ -152,6 +152,8 @@ export function buildUserPrompt(context: PromptContext): string {
 
     // Format History for Context
     let historyContext = "";
+    let goldenExamples = "";
+
     if (history) {
         const prayers = history.recentPrayers?.map(p => `- Date: ${p.date.split('T')[0]}, Focus: ${p.focus_area}, Shadow: ${p.shadow_snapshot || 'N/A'}`).join('\n') || "None";
         const journal = history.recentJournal?.map(j => `- Date: ${j.date.split('T')[0]}, Success: ${j.daily_success}, Capacity: ${j.capacity_used}`).join('\n') || "None";
@@ -164,25 +166,34 @@ export function buildUserPrompt(context: PromptContext): string {
     *Last 3 Days of Journal (Evening):*
     ${journal}
         `;
+
+        if (history.favoritePrayers && history.favoritePrayers.length > 0) {
+            goldenExamples = `
+    **GOLDEN EXAMPLES (User's Favorites):**
+    The user LOVED these past texts. Emulate their rhythm, depth, and phrasing style:
+    ${history.favoritePrayers.map((p, i) => `--- Example ${i+1} ---\n${p.content}`).join('\n\n')}
+            `;
+        }
     }
 
     return `
-    **Current Status:**
-    - **Focus**: "${currentFocus}"
+    **Current Status (The Micro Friction):**
+    - **Today's Immediate Focus/Friction**: "${currentFocus}"
     - **Mood**: ${mood || "Neutral/Open"}
     - **Life Challenge**: ${challenges[0] || "General balance"}
     
     ${historyContext}
+    ${goldenExamples}
 
-    **Drafting Instructions:**
-    1. **Grounding**: Start by acknowledging the *now* (morning light, current feeling).
-    2. **Continuity**: If there is a recurring theme in the history (e.g., same shadow or success), acknowledge progress or persistence.
+    **Drafting Instructions (Macro to Micro):**
+    1. **Grounding**: Start by acknowledging the *now* (morning light, current feeling, and today's specific friction). Let them breathe into it.
+    2. **Continuity**: If there is a recurring theme in the history, acknowledge progress.
     3. **Connection**: Weave in the "Weekly Energy" (${getDailyContext().weeklyEnergy.name}) subtly.
-    4. **Reframing**: Take the current challenge and reframe it using the "Positive" rule.
+    4. **The Bridge**: Connect today's friction ("${currentFocus}") to their Macro Goal ("${profile.north_star_vision || 'their journey'}"). Show them that passing today's hurdle is building the foundation for their 5-year vision.
     5. **Evidence-Based Power (CBT Focus)**: 
-       - **Internal Proof**: Use a STRENGTH ("Yesh Bi"). Phrasing: "זכור את ה[חוזקה] שקיימת בך באופן מובנה" ([Strength] is inherent in you).
-       - **External Proof**: Use a SUCCESS ("Hitzlachti"). Phrasing: "כשם שהצלחת ב[הצלחה], המציאות מוכיחה שאתה מסוגל ל..." (Just as you succeeded in [Success], reality proves you can...).
-    6. **Declaration**: End with a strong statement of intent for the day.
+       - Use a STRENGTH ("Yesh Bi"): "זכור את ה[חוזקה] שקיימת בך..."
+       - Use a SUCCESS ("Hitzlachti"): "כשם שהצלחת ב[הצלחה], כך גם היום..."
+    6. **Declaration**: End with a meditative, spiritual declaration of intent. It should sound like a quiet, powerful prayer from within, not a coach shouting instructions.
     
     **Output:**
     Return ONLY the Hebrew text. No explanations.

@@ -6,6 +6,7 @@ import { Sparkles, Share2, Copy, RefreshCw, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import DateDisplay from './DateDisplay';
+import PrayerCard from './PrayerCard';
 
 interface MorningTabProps {
     onIgnite?: () => void;
@@ -54,8 +55,16 @@ export default function MorningTab({ onIgnite, onIgniteEnd }: MorningTabProps) {
 
         try {
             const { getPrayers, getJournalEntries } = require('@/lib/storage');
-            const recentPrayers = getPrayers().slice(0, 3);
+            const allPrayers = getPrayers();
+            const recentPrayers = allPrayers.slice(0, 3);
             const recentJournal = getJournalEntries().slice(0, 3);
+            
+            let favoritePrayers = [];
+            const storedFavorites = localStorage.getItem('kavana_favorites');
+            if (storedFavorites) {
+                const favoriteIds = JSON.parse(storedFavorites);
+                favoritePrayers = allPrayers.filter(p => favoriteIds.includes(p.id)).slice(0, 2); // Send max 2 golden examples
+            }
 
             const body = {
                 ...profile,
@@ -63,7 +72,8 @@ export default function MorningTab({ onIgnite, onIgniteEnd }: MorningTabProps) {
                 current_intention: dailyFocus || profile.current_intention,
                 history: {
                     recentPrayers,
-                    recentJournal
+                    recentJournal,
+                    favoritePrayers
                 }
             };
 
@@ -220,56 +230,26 @@ export default function MorningTab({ onIgnite, onIgniteEnd }: MorningTabProps) {
                         animate={{ opacity: 1, scale: 1 }}
                         className="px-2"
                     >
-                        <div className="card-elevated overflow-hidden">
-                            {/* Prayer Header */}
-                            <div className="bg-gradient-to-r from-primary/10 to-purple-500/10 px-6 py-4 border-b border-primary/10">
-                                <h3 className="text-lg font-bold text-primary flex items-center gap-2">
-                                    <Sparkles className="w-5 h-5" />
-                                    הכוונה שלך להיום
-                                </h3>
-                            </div>
-
-                            {/* Prayer Content */}
-                            <div className="p-6">
-                                <div className="prose prose-lg text-text-primary whitespace-pre-wrap leading-relaxed">
-                                    {prayer}
-                                </div>
-                            </div>
-
-                            {/* Action Buttons */}
-                            <div className="flex gap-2 p-4 bg-surface-bg/50 border-t border-border-muted">
-                                <motion.button
-                                    whileTap={{ scale: 0.95 }}
-                                    onClick={() => {
-                                        navigator.clipboard.writeText(prayer);
-                                        toast.success('הכוונה הועתקה');
-                                    }}
-                                    className="flex-1 py-3 rounded-xl bg-primary/10 text-primary flex items-center justify-center gap-2 text-sm font-semibold hover:bg-primary/20 transition-colors"
-                                >
-                                    <Copy className="w-4 h-4" />
-                                    העתק
-                                </motion.button>
-                                <motion.button
-                                    whileTap={{ scale: 0.95 }}
-                                    className="flex-1 py-3 rounded-xl bg-primary/10 text-primary flex items-center justify-center gap-2 text-sm font-semibold hover:bg-primary/20 transition-colors"
-                                >
-                                    <Share2 className="w-4 h-4" />
-                                    שתף
-                                </motion.button>
-                                <motion.button
-                                    whileTap={{ scale: 0.95 }}
-                                    onClick={() => {
-                                        setPrayer(null);
-                                        setAskingIntent(false);
-                                        setSpecificIntent('');
-                                    }}
-                                    className="flex-1 py-3 rounded-xl bg-surface-bg text-text-secondary flex items-center justify-center gap-2 text-sm font-semibold hover:bg-border-muted transition-colors"
-                                >
-                                    <RefreshCw className="w-4 h-4" />
-                                    חדש
-                                </motion.button>
-                            </div>
+                        <div className="flex justify-between items-center mb-4 px-2">
+                             <h3 className="text-lg font-bold text-primary flex items-center gap-2">
+                                <Sparkles className="w-5 h-5" />
+                                הכוונה שלך להיום
+                            </h3>
+                            <button
+                                onClick={() => {
+                                    setPrayer(null);
+                                    setAskingIntent(false);
+                                    setSpecificIntent('');
+                                }}
+                                className="p-2 rounded-xl bg-surface-bg text-text-secondary flex items-center justify-center text-sm font-semibold hover:bg-border-muted transition-colors"
+                            >
+                                <RefreshCw className="w-5 h-5" />
+                            </button>
                         </div>
+                        <PrayerCard 
+                            content={prayer} 
+                            onFeedback={(feedback) => generateKavana(feedback, specificIntent)} 
+                        />
                     </motion.div>
                 )}
             </AnimatePresence>

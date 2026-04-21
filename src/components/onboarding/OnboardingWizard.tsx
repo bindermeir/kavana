@@ -410,16 +410,38 @@ export default function OnboardingWizard() {
             </div>
         </Step>,
 
-        // Step 12: The Vision
-        <Step key="vision" title="השאלה הכי חשובה" subtitle="החזון שלך">
-            <div className="space-y-4">
-                <p className="text-lg">אם הטקסט של היום היה "מושלם" — מה הוא היה נותן לך?</p>
-                <textarea
-                    className="input w-full h-40 resize-none"
-                    value={formData.perfect_text_vision || ''}
-                    onChange={e => updateField('perfect_text_vision', e.target.value)}
-                    placeholder="ספר לי במילים שלך..."
-                />
+        // Step 12: The Vision (Macro to Micro)
+        <Step key="vision" title="החזון הגדול שלך" subtitle="לאן אנחנו הולכים?">
+            <div className="space-y-6">
+                <div>
+                    <label className="block text-sm font-semibold mb-2 text-text-secondary">כוכב הצפון (1-5 שנים קדימה):</label>
+                    <p className="text-xs text-text-secondary mb-3">מה החזון הגדול שלך? (למשל: לבנות עסק עצמאי, להקים משפחה, למצוא שקט נפשי)</p>
+                    <textarea
+                        className="input w-full h-24 resize-none"
+                        value={formData.north_star_vision || ''}
+                        onChange={e => updateField('north_star_vision', e.target.value)}
+                        placeholder="החזון שלי הוא..."
+                    />
+                </div>
+                <div>
+                    <label className="block text-sm font-semibold mb-2 text-text-secondary">המטרה התקופתית (החודש/הרבעון הקרוב):</label>
+                    <p className="text-xs text-text-secondary mb-3">מה הצעד הקרוב בדרך לשם? (למשל: לסיים את התואר, למצוא זוגיות, להתמיד בספורט)</p>
+                    <textarea
+                        className="input w-full h-20 resize-none"
+                        value={formData.period_goal || ''}
+                        onChange={e => updateField('period_goal', e.target.value)}
+                        placeholder="בתקופה הקרובה אני מתמקד ב..."
+                    />
+                </div>
+                <div>
+                    <label className="block text-sm font-semibold mb-2 text-text-secondary">איך תרצה שהטקסט היומי ירגיש?</label>
+                    <textarea
+                        className="input w-full h-16 resize-none"
+                        value={formData.perfect_text_vision || ''}
+                        onChange={e => updateField('perfect_text_vision', e.target.value)}
+                        placeholder="מושלם עבורי יהיה טקסט ש..."
+                    />
+                </div>
             </div>
         </Step>
     ];

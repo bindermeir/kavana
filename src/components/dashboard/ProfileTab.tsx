@@ -342,29 +342,41 @@ export default function ProfileTab({ profile }: { profile?: UserProfile }) {
             </div>
 
             {/* Action Buttons */}
-            <div className="flex gap-3">
+            <div className="flex flex-col gap-3">
+                <div className="flex gap-3">
+                    <motion.button
+                        onClick={() => {
+                            window.location.href = '/onboarding?mode=edit';
+                        }}
+                        whileTap={{ scale: 0.98 }}
+                        className="flex-1 py-3.5 border-2 border-primary text-primary rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-primary/5 transition-colors"
+                    >
+                        <Edit3 className="w-4 h-4" />
+                        ערוך פרופיל
+                    </motion.button>
+                    <motion.button
+                        onClick={() => {
+                            if (confirm('האם אתה בטוח שברצונך למחוק את הפרופיל ולהתחיל מחדש?')) {
+                                localStorage.removeItem('kavana_user_profile');
+                                window.location.href = '/';
+                            }
+                        }}
+                        whileTap={{ scale: 0.98 }}
+                        className="flex-1 py-3.5 border-2 border-rose-200 dark:border-rose-800 text-rose-500 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors"
+                    >
+                        <Trash2 className="w-4 h-4" />
+                        התחל מחדש
+                    </motion.button>
+                </div>
                 <motion.button
                     onClick={() => {
-                        window.location.href = '/onboarding?mode=edit';
+                        window.location.href = '/about';
                     }}
                     whileTap={{ scale: 0.98 }}
-                    className="flex-1 py-3.5 border-2 border-primary text-primary rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-primary/5 transition-colors"
+                    className="w-full py-3.5 bg-surface-bg text-text-secondary rounded-2xl font-medium flex items-center justify-center gap-2 transition-colors hover:bg-border-muted"
                 >
-                    <Edit3 className="w-4 h-4" />
-                    ערוך פרופיל
-                </motion.button>
-                <motion.button
-                    onClick={() => {
-                        if (confirm('האם אתה בטוח שברצונך למחוק את הפרופיל ולהתחיל מחדש?')) {
-                            localStorage.removeItem('kavana_user_profile');
-                            window.location.href = '/';
-                        }
-                    }}
-                    whileTap={{ scale: 0.98 }}
-                    className="flex-1 py-3.5 border-2 border-rose-200 dark:border-rose-800 text-rose-500 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors"
-                >
-                    <Trash2 className="w-4 h-4" />
-                    התחל מחדש
+                    <Sparkles className="w-4 h-4" />
+                    החזון שלנו (אודות)
                 </motion.button>
             </div>
         </div>

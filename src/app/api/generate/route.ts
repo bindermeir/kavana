@@ -18,14 +18,18 @@ export async function POST(request: Request) {
         // 1. Initialize Gemini
         const genAI = new GoogleGenerativeAI(apiKey);
         const model = genAI.getGenerativeModel({
-            model: "gemini-2.0-flash", // Reverting to high-quality model for paid plan
-            systemInstruction: buildSystemPrompt(profile)
+            model: "gemini-2.0-flash", // Using latest model
+            systemInstruction: buildSystemPrompt(profile),
+            generationConfig: {
+                temperature: 0.7, // Add a bit of creativity for poetic structure
+                topP: 0.8,
+            }
         });
 
         // 2. Build User Prompt
         const userPrompt = buildUserPrompt({
             profile,
-            currentFocus: profile.life_focus_areas?.[0] || 'General Alignment',
+            currentFocus: profile.current_intention || profile.life_focus_areas?.[0] || 'General Alignment',
             history: (profile as any).history // Passed from client
         });
 
@@ -39,7 +43,7 @@ export async function POST(request: Request) {
         return NextResponse.json({
             prayer: generatedText,
             meta: {
-                model: 'gemini-1.5-flash',
+                model: 'gemini-2.0-flash',
                 timestamp: new Date().toISOString()
             }
         });
