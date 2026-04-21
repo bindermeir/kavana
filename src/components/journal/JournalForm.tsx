@@ -15,7 +15,6 @@ export default function JournalForm() {
         declaration: '',
         date: new Date().toISOString()
     });
-    });
     const [isSaved, setIsSaved] = useState(false);
     const [isGenerating, setIsGenerating] = useState(false);
     const [eveningReflection, setEveningReflection] = useState('');

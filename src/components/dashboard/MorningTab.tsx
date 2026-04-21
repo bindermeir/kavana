@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { getProfile, UserProfile } from '@/lib/storage';
+import { getProfile, UserProfile, getPrayers, getJournalEntries, savePrayer, saveProfile, PrayerEntry } from '@/lib/storage';
 import { Sparkles, Share2, Copy, RefreshCw, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -49,21 +49,19 @@ export default function MorningTab({ onIgnite, onIgniteEnd }: MorningTabProps) {
                 custom_instructions: [...(profile.custom_instructions || []), feedback]
             };
             setProfile(updatedProfile);
-            const { saveProfile } = require('@/lib/storage');
             saveProfile(updatedProfile);
         }
 
         try {
-            const { getPrayers, getJournalEntries } = require('@/lib/storage');
             const allPrayers = getPrayers();
             const recentPrayers = allPrayers.slice(0, 3);
             const recentJournal = getJournalEntries().slice(0, 3);
             
-            let favoritePrayers = [];
+            let favoritePrayers: PrayerEntry[] = [];
             const storedFavorites = localStorage.getItem('kavana_favorites');
             if (storedFavorites) {
                 const favoriteIds = JSON.parse(storedFavorites);
-                favoritePrayers = allPrayers.filter(p => favoriteIds.includes(p.id)).slice(0, 2); // Send max 2 golden examples
+                favoritePrayers = allPrayers.filter((p: PrayerEntry) => favoriteIds.includes(p.id)).slice(0, 2); // Send max 2 golden examples
             }
 
             const body = {
@@ -87,7 +85,6 @@ export default function MorningTab({ onIgnite, onIgniteEnd }: MorningTabProps) {
 
             if (data.prayer) {
                 setPrayer(data.prayer);
-                const { savePrayer } = require('@/lib/storage');
                 savePrayer({
                     id: crypto.randomUUID(),
                     user_id: profile.id,

@@ -1,3 +1,5 @@
+import React, { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
 import { getPrayers, PrayerEntry, getProfile, UserProfile } from '@/lib/storage';
 import { PieChart, TrendingUp, Activity, ShieldAlert, Target, Compass, Sparkles, Plus, Trash2 } from 'lucide-react';
 
@@ -166,11 +168,12 @@ function ResourceBuilder({ initialProfile }: { initialProfile: UserProfile | nul
     };
 
     const handleDelete = (type: 'strengths' | 'success', index: number) => {
+        if (!profile) return;
         let updatedProfile = { ...profile };
         if (type === 'strengths') {
-            updatedProfile.personal_strengths = updatedProfile.personal_strengths.filter((_: any, i: number) => i !== index);
+            updatedProfile.personal_strengths = (updatedProfile.personal_strengths || []).filter((_: any, i: number) => i !== index);
         } else {
-            updatedProfile.success_bank = updatedProfile.success_bank.filter((_: any, i: number) => i !== index);
+            updatedProfile.success_bank = (updatedProfile.success_bank || []).filter((_: any, i: number) => i !== index);
         }
         const { saveProfile } = require('@/lib/storage');
         saveProfile(updatedProfile as any);
