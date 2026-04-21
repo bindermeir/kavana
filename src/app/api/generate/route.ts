@@ -43,7 +43,7 @@ export async function POST(request: Request) {
         return NextResponse.json({
             prayer: generatedText,
             meta: {
-                model: 'gemini-2.0-flash',
+                model: 'gemini-1.5-flash',
                 timestamp: new Date().toISOString()
             }
         });
