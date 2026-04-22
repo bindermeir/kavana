@@ -1,103 +1,156 @@
 "use client";
 
 import React, { useState } from 'react';
-import { UserProfile, saveProfile, clearAllData } from '@/lib/storage';
-import { User, Shield, Target, Heart, MessageSquare, Trash2, Settings, Save, X } from 'lucide-react';
+import { UserProfile, saveProfile } from '@/lib/storage';
+import { User, Target, Shield, Sparkles, Edit2, Check, Bell, BellOff, Loader2 } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { toast } from 'sonner';
-import { motion, AnimatePresence } from 'framer-motion';
 
-export default function ProfileTab({ profile }: { profile: UserProfile }) {
+interface ProfileTabProps {
+    profile: UserProfile;
+}
+
+export default function ProfileTab({ profile: initialProfile }: ProfileTabProps) {
+    const [profile, setProfile] = useState(initialProfile);
     const [isEditing, setIsEditing] = useState(false);
-    const [editedProfile, setEditedProfile] = useState(profile);
+    const [isSaving, setIsSaving] = useState(false);
+    const [notificationsEnabled, setNotificationsEnabled] = useState(false);
 
-    const handleSave = () => {
-        saveProfile(editedProfile);
-        setIsEditing(false);
-        toast.success('הפרופיל המקודש עודכן');
-        setTimeout(() => window.location.reload(), 500);
+    // Check for notification permission on load
+    React.useEffect(() => {
+        if (typeof window !== 'undefined' && 'Notification' in window) {
+            setNotificationsEnabled(Notification.permission === 'granted');
+        }
+    }, []);
+
+    const handleSave = async () => {
+        setIsSaving(true);
+        try {
+            await saveProfile(profile);
+            toast.success('הפרופיל עודכן בהצלחה');
+            setIsEditing(false);
+        } catch (e) {
+            toast.error('שגיאה בשמירת הפרופיל');
+        } finally {
+            setIsSaving(false);
+        }
     };
 
-    const handleReset = () => {
-        if (confirm('האם אתה בטוח שברצונך למחוק את כל הנתונים ולהתחיל מחדש? תהליך זה אינו הפיך.')) {
-            clearAllData();
-            window.location.href = '/onboarding';
+    const requestNotificationPermission = async () => {
+        if (!('Notification' in window)) {
+            toast.error('הדפדפן שלך לא תומך בהתראות');
+            return;
+        }
+
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+            setNotificationsEnabled(true);
+            toast.success('ההתראות הופעלו בהצלחה!');
+            // Here you would typically register the push subscription with the backend
+        } else {
+            toast.error('הרשאת ההתראות נדחתה');
         }
     };
 
     return (
-        <div className="space-y-10 pb-24">
-            <header className="text-center space-y-3">
-                <div className="w-24 h-24 bg-accent-active/5 rounded-full flex items-center justify-center mx-auto text-accent-active border-2 border-accent-active/20 relative">
-                    <User className="w-12 h-12" />
-                    <button 
-                        onClick={() => setIsEditing(!isEditing)}
-                        className="absolute -bottom-2 -right-2 p-2 bg-white shadow-md rounded-full text-text-secondary hover:text-accent-active transition-colors"
-                    >
-                        {isEditing ? <X className="w-4 h-4" /> : <Settings className="w-4 h-4" />}
-                    </button>
+        <div className="space-y-8 pt-4 pb-20">
+            <header className="flex justify-between items-center">
+                <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-accent-active/10 rounded-full flex items-center justify-center text-accent-active">
+                        <User className="w-6 h-6" />
+                    </div>
+                    <div>
+                        <h1 className="text-2xl font-bold text-sacred">{profile.name}</h1>
+                        <p className="text-xs text-text-secondary italic">הזהות המקודשת שלך</p>
+                    </div>
                 </div>
-                <div>
-                    <h1 className="text-4xl font-bold text-sacred">{profile.name || 'משתמש'}</h1>
-                    <p className="text-text-secondary italic">{profile.belief_system} • {profile.tone}</p>
-                </div>
+                <button 
+                    onClick={() => isEditing ? handleSave() : setIsEditing(true)}
+                    className="p-3 bg-white shadow-sm rounded-xl text-accent-active hover:scale-105 transition-transform"
+                >
+                    {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : isEditing ? <Check className="w-5 h-5" /> : <Edit2 className="w-5 h-5" />}
+                </button>
             </header>
 
             <div className="space-y-6">
-                <AnimatePresence mode="wait">
-                    {!isEditing ? (
-                        <motion.div key="view" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-6">
-                            <Section icon={Target} title="החזון והמטרות">
-                                <Field label="כוכב הצפון (1-5 שנים)" value={profile.future_vision} />
-                                <Field label="מטרה תקופתית" value={profile.current_goal} />
-                                <Field label="כוונה שנתית" value={profile.yearly_intention} />
-                            </Section>
+                {/* Notifications Card */}
+                <div className="sacred-card p-6 flex justify-between items-center border-accent-active/20 bg-accent-active/5">
+                    <div className="flex items-center gap-3">
+                        <div className={`p-2 rounded-lg ${notificationsEnabled ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'}`}>
+                            {notificationsEnabled ? <Bell className="w-5 h-5" /> : <BellOff className="w-5 h-5" />}
+                        </div>
+                        <div>
+                            <h3 className="font-bold text-sacred">תזכורות יומיות</h3>
+                            <p className="text-xs text-text-secondary">קבל התראה בבוקר ובערב</p>
+                        </div>
+                    </div>
+                    <button 
+                        onClick={requestNotificationPermission}
+                        className={`px-4 py-2 rounded-full text-xs font-bold transition-all ${notificationsEnabled ? 'bg-white text-text-secondary cursor-default' : 'bg-accent-active text-white shadow-md'}`}
+                        disabled={notificationsEnabled}
+                    >
+                        {notificationsEnabled ? 'פעיל' : 'הפעל'}
+                    </button>
+                </div>
 
-                            <Section icon={Shield} title="זהות וערכים">
-                                <Field label="ערכי ליבה" value={profile.core_values?.join(', ')} />
-                                <Field label="מערכת אמונות" value={profile.belief_system} />
-                                <Field label="משמעות התפילה" value={profile.prayer_meaning?.join(', ')} />
-                            </Section>
-
-                            <Section icon={MessageSquare} title="סגנון וגבולות">
-                                <Field label="טון דיבור" value={profile.tone} />
-                                <Field label="גבולות תוכן" value={profile.content_boundaries?.join(', ')} />
-                            </Section>
-
-                            <Section icon={Heart} title="עולם אישי">
-                                <Field label="סטטוס זוגי" value={profile.relationship_status} />
-                                <Field label="גישה בזוגיות" value={profile.relationship_approach_in_texts} />
-                                <Field label="קריירה ושפע" value={profile.work_money_place} />
-                            </Section>
-                        </motion.div>
+                <Section icon={Target} title="החזון הגדול (כוכב הצפון)">
+                    {isEditing ? (
+                        <textarea 
+                            className="input w-full h-32 text-lg" 
+                            value={profile.future_vision} 
+                            onChange={e => setProfile({...profile, future_vision: e.target.value})} 
+                        />
                     ) : (
-                        <motion.div key="edit" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="space-y-6">
-                            <div className="sacred-card space-y-6">
-                                <h3 className="text-xl font-bold text-sacred border-b border-border-color/20 pb-4">עריכת פרופיל</h3>
-                                
-                                <EditField label="שם מלא" value={editedProfile.name} onChange={v => setEditedProfile({...editedProfile, name: v})} />
-                                <EditField label="חזון (כוכב הצפון)" value={editedProfile.future_vision} isTextArea onChange={v => setEditedProfile({...editedProfile, future_vision: v})} />
-                                <EditField label="מטרה תקופתית" value={editedProfile.current_goal} onChange={v => setEditedProfile({...editedProfile, current_goal: v})} />
-                                
-                                <div className="flex gap-3 pt-6">
-                                    <button onClick={() => setIsEditing(false)} className="btn-ghost flex-1 py-4">ביטול</button>
-                                    <button onClick={handleSave} className="btn-primary flex-1 py-4 flex items-center justify-center gap-2">
-                                        <Save className="w-5 h-5" /> שמור שינויים
-                                    </button>
-                                </div>
-                            </div>
-                        </motion.div>
+                        <p className="text-lg leading-relaxed text-sacred font-light italic">"{profile.future_vision}"</p>
                     )}
-                </AnimatePresence>
-            </div>
+                </Section>
 
-            {/* Danger Zone */}
-            <div className="pt-10 border-t border-border-color/30 space-y-4">
-                <button 
-                    onClick={handleReset}
-                    className="w-full py-5 rounded-2xl border-2 border-rose-100 text-rose-500 font-bold hover:bg-rose-50 transition-colors flex items-center justify-center gap-2"
-                >
-                    <Trash2 className="w-5 h-5" /> איפוס כל הנתונים והתחלה מחדש
-                </button>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <Section icon={Sparkles} title="המטרה הנוכחית">
+                        {isEditing ? (
+                            <input 
+                                className="input w-full" 
+                                value={profile.current_goal} 
+                                onChange={e => setProfile({...profile, current_goal: e.target.value})} 
+                            />
+                        ) : (
+                            <p className="text-sacred font-medium">{profile.current_goal}</p>
+                        )}
+                    </Section>
+
+                    <Section icon={Shield} title="ערכי ליבה">
+                        <div className="flex flex-wrap gap-2 pt-1">
+                            {profile.core_values?.map(val => (
+                                <span key={val} className="px-3 py-1 bg-white rounded-full text-xs font-medium text-accent-active border border-accent-active/10 shadow-sm">
+                                    {val}
+                                </span>
+                            ))}
+                        </div>
+                    </Section>
+                </div>
+
+                {isEditing && (
+                    <div className="grid grid-cols-2 gap-4">
+                         <div className="space-y-2">
+                            <label className="text-[10px] font-bold text-text-secondary uppercase">תזכורת בוקר</label>
+                            <input 
+                                type="time" 
+                                className="input w-full" 
+                                value={profile.morning_reminder_time || '07:00'} 
+                                onChange={e => setProfile({...profile, morning_reminder_time: e.target.value})} 
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-bold text-text-secondary uppercase">תזכורת ערב</label>
+                            <input 
+                                type="time" 
+                                className="input w-full" 
+                                value={profile.evening_reminder_time || '21:00'} 
+                                onChange={e => setProfile({...profile, evening_reminder_time: e.target.value})} 
+                            />
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );
@@ -105,45 +158,12 @@ export default function ProfileTab({ profile }: { profile: UserProfile }) {
 
 function Section({ icon: Icon, title, children }: any) {
     return (
-        <div className="sacred-card space-y-6">
-            <div className="flex items-center gap-3 border-b border-border-color/20 pb-4">
-                <Icon className="w-6 h-6 text-accent-active" />
-                <h3 className="font-bold text-sacred uppercase tracking-widest text-sm">{title}</h3>
+        <div className="sacred-card space-y-3">
+            <div className="flex items-center gap-2">
+                <Icon className="w-4 h-4 text-accent-active" />
+                <h3 className="font-bold text-[10px] text-accent-active uppercase tracking-widest">{title}</h3>
             </div>
-            <div className="grid gap-6">
-                {children}
-            </div>
-        </div>
-    );
-}
-
-function Field({ label, value }: { label: string, value?: string }) {
-    return (
-        <div>
-            <label className="block text-[10px] font-bold text-text-secondary uppercase tracking-widest mb-1">{label}</label>
-            <p className="text-text-primary font-medium leading-relaxed">{value || 'לא הוגדר'}</p>
-        </div>
-    );
-}
-
-function EditField({ label, value, onChange, isTextArea }: any) {
-    return (
-        <div className="space-y-2">
-            <label className="block text-xs font-bold text-text-secondary uppercase">{label}</label>
-            {isTextArea ? (
-                <textarea 
-                    className="input w-full h-32 resize-none" 
-                    value={value || ''} 
-                    onChange={e => onChange(e.target.value)}
-                />
-            ) : (
-                <input 
-                    className="input w-full" 
-                    type="text" 
-                    value={value || ''} 
-                    onChange={e => onChange(e.target.value)}
-                />
-            )}
+            {children}
         </div>
     );
 }
