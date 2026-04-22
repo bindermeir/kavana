@@ -84,7 +84,7 @@ export default function Home() {
           className="mb-8"
         >
           <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center shadow-lg shadow-primary/30 animate-pulse-glow">
-            <span className="text-5xl">🕎</span>
+            <span className="text-5xl">🕯️</span>
           </div>
         </motion.div>
 

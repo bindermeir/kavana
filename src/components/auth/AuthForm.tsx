@@ -66,7 +66,7 @@ export default function AuthForm({ onSuccess }: AuthFormProps) {
                     transition={{ type: "spring", duration: 0.5 }}
                     className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center shadow-lg shadow-primary/30"
                 >
-                    <span className="text-4xl">🕎</span>
+                    <span className="text-4xl">🕯️</span>
                 </motion.div>
                 <h1 className="text-3xl font-bold gradient-text">כוונה</h1>
                 <p className="text-text-secondary text-sm mt-2">
