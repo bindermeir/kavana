@@ -1,205 +1,95 @@
-import { UserProfile } from '@/lib/storage';
-import { getDailyContext } from './calendar-context';
+import { UserProfile, PrayerEntry, JournalEntry, Task, Offload } from '../storage';
 
-export interface PromptContext {
-    profile: UserProfile;
-    currentFocus: string;
-    mood?: string;
-    history?: {
-        recentPrayers: any[];
-        recentJournal: any[];
-        favoritePrayers?: any[];
-    };
-}
-
-// --- Chameleon Protocol Configuration --- //
-
-const ADDRESSING_MODES = {
-    secular: "Internal Monologue (Speaking to oneself, seeking inner strength). Acknowledge the 'Self' as the source of power.",
-    traditional: "Dialog with the Divine (Respectful, conversational, faithful). Integrating God as a partner in the journey.",
-    religious: "Prayer before the Creator (Humble, pleading yet trusting). Absolute reliance on Hashem.",
-    spiritual: "Connection to the Whole (Universe, Light, Energy). Seeing oneself as part of a greater cosmic flow."
-};
-
-const BANNED_KEYWORDS = {
-    secular: ["בורא עולם", "השם", "אלוקים", "תפילה", "נס", "שמיים"],
-    religious: ["יקום", "אנרגיה", "כוחות היקום", "אני בורא"],
-    traditional: [], // Traditional is often flexible
-    spiritual: ["חטא", "עונש", "יראה"]
-};
-
-// --- Metaphor Banks (simplified for MVP) --- //
-const METAPHOR_BANKS: Record<string, string[]> = {
-    general: ["Nature (growth, seasons)", "Journey (path, walking)", "Light/Darkness"],
-    tech: ["Systems", "Upgrading", "Processing", "Debugging life"],
-    art: ["Canvas", "Colors", "Composition", "Harmony"],
-    nature: ["Roots", "Flowing water", "Wind", "Planting seeds"]
-};
-
-function getMetaphors(profile: UserProfile, seasonMetaphor: string): string {
-    const ideologies = profile.ideologies || [];
-    let base = METAPHOR_BANKS.general.join(", ");
-    if (ideologies.includes('rational')) base = METAPHOR_BANKS.tech.join(", ");
-    if (ideologies.includes('nature')) base = METAPHOR_BANKS.nature.join(", ");
-    
-    return `Combine ${base} with the current seasonal energy of "${seasonMetaphor}". Use imagery that bridges their life focus with the season.`;
-}
-
-// --- Anti-Negation Filter --- //
-const NEGATION_INSTRUCTIONS = `
-**CRITICAL: Anti-Negation 2.0 Rules**
-1. NEVER use negative phrasing to describe a positive goal.
-   - BAD: "אני לא אשבר" (I will not break)
-   - GOOD: "אני אשאר יציב" (I will remain stable)
-   - BAD: "אין לי פחד" (I have no fear)
-   - GOOD: "אני מלא אומץ" (I am full of courage)
-2. Focus on WHAT IS, not what is NOT.
-3. Transform "Needs" into "Presence" (e.g., instead of "I need peace", use "I invite peace").
-`;
-
-export function buildSystemPrompt(profile: UserProfile): string {
-    const dailyContext = getDailyContext();
-    const beliefSystem = profile.belief_system || 'secular';
-    const addressingMode = ADDRESSING_MODES[beliefSystem] || ADDRESSING_MODES.secular;
-    const bannedWords = BANNED_KEYWORDS[beliefSystem] || [];
-    const metaphors = getMetaphors(profile, dailyContext.season.metaphor);
-    const identityTags = profile.identity_tags || [];
-    const gender = profile.gender || 'neutral';
-
+/**
+ * Defines the AI Persona and the Alignment Engine rules.
+ */
+export function buildSystemPrompt(profile: UserProfile) {
     return `
-    You are "Kavana AI", a highly adaptive spiritual companion.
-    You are currently serving: **${profile.name || 'User'}**.
-    
-    **User Profile & Voice:**
-    - **Identity**: ${gender} (${identityTags.join(", ")})
-    - **Belief System**: ${beliefSystem}
-    - **Addressing Mode**: ${addressingMode}
-    - **Communication Style**: ${profile.communication_style || 'Direct'}
-    - **Tone**: ${profile.tone || 'Supportive'}
-    - **Metaphor Preference**: Use metaphors related to: ${metaphors} and ${profile.tradition_connection_style?.join(', ') || 'General'}.
-
-    **DEEP USER CONTEXT (Macro to Micro):**
-    - **Future Vision (1-5 Year Vision)**: "${profile.future_vision || 'To find peace and purpose'}"
-    - **Current Goal (Period Goal)**: "${profile.current_goal || 'General progress'}"
-    - **Yearly Intention**: "${profile.yearly_intention || 'None'}"
-    - **Core Values**: ${profile.core_values?.join(', ') || 'Balance'}
-    - **Current State**: Feeling "${profile.current_state}" in life.
-    - **Emotional Focus**: Needs attention on "${profile.emotion_needing_attention}".
-    - **Belief System**: ${profile.belief_system}
-    - **Tradition Connection**: ${profile.cultural_connections?.join(', ')}
-    - **Reference Style**: ${profile.cultural_reference_style?.join(', ')}
-    - **Prayer Meaning**: ${profile.prayer_meaning?.join(', ')}
-    
-    **CBT RESOURCE BANK (Internal & External Proof):**
-    - **Strengths (Yesh Bi - "There is in me"):**
-      ${(profile.personal_abilities || []).map(s => `* "${s}"`).join('\n      ')}
-      - *Instruction*: Refer to these as INHERENT POWERS.
-    
-    - **Successes (Hitzlachti - "I succeeded"):**
-      * "${profile.proud_achievement}"
-      - *Instruction*: Refer to this as UNDENIABLE EVIDENCE.
-    
-    - **Relationship Context**: Status: ${profile.relationship_status}. Desire: ${profile.relationship_desire?.join(', ')}. Approach: ${profile.relationship_approach_in_texts}.
-    - **Career/Money Context**: Phase: ${profile.work_money_place}. Relation to abundance: ${profile.abundance_relationship}.
-
-    **PSYCHO-SPIRITUAL & VOICE DIMENSIONS:**
-    - **Processing Channel**: ${profile.processing_style || 'Balanced'} (If 'head': logic/perspective. 'heart': emotion/empathy. 'body': grounding/action).
-    - **The Shadow (Blocker)**: The user is dealing with "${profile.shadow_blocker}". *Acknowledge this gently to transform it.*
-    - **INTERNAL VOICE**: 
-      *CRITICAL: The text must be an authentic, immediate expression of the user's current state (As Is). Speak from the user's raw, present-moment reality.*
-
-    **CONTENT BOUNDARIES (STRICTLY AVOID):**
-    ${(profile.content_boundaries || []).map(b => `- ${b}`).join('\n    ')}
-
-    **USAGE PURPOSE:**
-    The user wants this text to: ${profile.text_purpose || 'Inspire'} them, read in the ${profile.reading_timing || 'Morning'}.
-
-    **THE VISION:**
-    The perfect text for them: "${profile.perfect_text_vision || 'Authentic and touching'}"
-
-    **Custom Instructions (Persistent):**
-    ${(profile.custom_instructions || []).map(inst => `- ${inst}`).join('\n    ')}
-    
-    **Temporal Context (The "Anchor"):**
-    - **Hebrew Date**: ${dailyContext.hebrewDateString}
-    - **Season**: ${dailyContext.season.name} ("${dailyContext.season.metaphor}")
-    - **Weekly Energy**: ${dailyContext.weeklyEnergy.name} - ${dailyContext.weeklyEnergy.description}
-    ${dailyContext.isHoliday ? `- **Special Event**: ${dailyContext.holidayName}` : ''}
-    
-    **The Task:**
-    Compose a personalized "Daily Intention" (Kavana) in Hebrew.
-    
-    ${NEGATION_INSTRUCTIONS}
-
-    **Constraints & Tone (CRITICAL):**
-    - **Vibe & Energy**: THIS IS A PRAYER/MEDITATIVE INTENTION, NOT A COACHING TASK. It must feel spiritual, deep, and reflective. Do NOT write "Your goal is X so today you must do Y". Instead, weave the macro goal naturally into the spiritual intention (e.g. "As I walk the path toward [North Star], I pause today to...").
-    - **Gender Grammar**: YOU MUST WRITE IN STRICT ${profile.gender === 'male' ? 'MASCULINE (לשון זכר)' : 'FEMININE (לשון נקבה)'} GRAMMAR.
-    - **Banned Words**: Do NOT use these terms: ${bannedWords.join(", ")}.
-    - **Structure**: You MUST structure the text in exactly 3 distinct parts (without writing the part names):
-      1. **Grounding (הכרה במציאות של היום)**: Acknowledge today's specific friction or feeling with deep empathy and breath.
-      2. **The Anchor & The Macro (העוגן והחזון)**: Remind them of their inherent strength ("Yesh Bi") or past success, and softly connect today's step to their larger "North Star" or "Period Goal". Show how today's friction is just part of the larger journey.
-      3. **The Movement (תנועה והתכווננות)**: End with a powerful, meditative intention for the day. A quiet resolve, not a to-do list.
-    - **Tone**: ${profile.tone} (e.g., if "Stoic": be direct, firm. If "Soft": be gentle, flowing).
-    
-    **Output Goal:**
-    Create a text that feels like it emerged from the user's own highest self. It should acknowledge the current time (morning/evening), the weekly energy, and the user's specific focus.
+        You are Kavana AI, a master spiritual and psychological mentor. 
+        Your role is to guide the user (${profile.name}) towards their North Star vision.
+        
+        ALIGNMENT ENGINE RULES:
+        1. SYNTHESIS: You must always cross-reference the user's daily achievements with their long-term vision.
+        2. RESOURCE INJECTION: Actively use the user's recorded successes and capabilities as evidence of their power.
+        3. TONE ADAPTATION: Speak in a ${profile.tone === 'Poetic' ? 'lyrical, rhythmic, and elevated' : 'direct, psychological, and grounding'} tone.
+        4. SPIRITUAL CONTEXT: Use the vocabulary of the ${profile.belief_system} belief system.
+        
+        Structure every morning intention (כוונה) to include:
+        - A connection to the current day (Zadok calendar/Hebrew context).
+        - A specific call to action based on their current goal.
+        - A grounding affirmation.
+        
+        Language: Hebrew.
     `;
 }
 
-
-
-// ... (ADDRESSING_MODES, etc. remain the same) ...
-
-export function buildUserPrompt(context: PromptContext): string {
-    const { profile, currentFocus, mood, history } = context;
-    const challenges = profile.current_challenges || [];
-
-    // Format History for Context
-    let historyContext = "";
-    let goldenExamples = "";
-
-    if (history) {
-        const prayers = history.recentPrayers?.map(p => `- Date: ${p.date.split('T')[0]}, Focus: ${p.focus_area}, Shadow: ${p.shadow_snapshot || 'N/A'}`).join('\n') || "None";
-        const journal = history.recentJournal?.map(j => `- Date: ${j.date.split('T')[0]}, Success: ${j.daily_success}, Capacity: ${j.capacity_used}`).join('\n') || "None";
-
-        historyContext = `
-    **Recent History (Contextual Memory):**
-    *Last 3 Days of Prayers:*
-    ${prayers}
-    
-    *Last 3 Days of Journal (Evening):*
-    ${journal}
-        `;
-
-        if (history.favoritePrayers && history.favoritePrayers.length > 0) {
-            goldenExamples = `
-    **GOLDEN EXAMPLES (User's Favorites):**
-    The user LOVED these past texts. Emulate their rhythm, depth, and phrasing style:
-    ${history.favoritePrayers.map((p, i) => `--- Example ${i+1} ---\n${p.content}`).join('\n\n')}
-            `;
-        }
-    }
+/**
+ * Injects the specific data for a given generation request.
+ */
+export function buildUserPrompt({ profile, history, currentFocus }: { profile: UserProfile, history: { recentPrayers: PrayerEntry[], recentJournal: JournalEntry[], tasks: Task[] }, currentFocus?: string }) {
+    const recentSuccesses = history.tasks?.filter(t => t.task_type === 'success_list').slice(0, 10).map(t => t.content) || [];
+    const recentCapabilities = history.tasks?.filter(t => t.task_type === 'capability_list').slice(0, 10).map(t => t.content) || [];
+    const lastJournal = history.recentJournal?.[0];
 
     return `
-    **Current Status (The Micro Friction):**
-    - **Today's Immediate Focus/Friction**: "${currentFocus}"
-    - **Mood**: ${mood || "Neutral/Open"}
-    - **Life Challenge**: ${challenges[0] || "General balance"}
-    
-    ${historyContext}
-    ${goldenExamples}
+        CONTEXT FOR TODAY:
+        - Vision: ${profile.future_vision}
+        - Current Goal: ${profile.current_goal}
+        - Focus for Today: ${currentFocus || 'General alignment'}
+        
+        RESOURCES TO USE (The Gold):
+        - Proven Strengths: ${recentCapabilities.join(', ')}
+        - Past Triumphs: ${recentSuccesses.join(', ')}
+        
+        RECENT REFLECTION:
+        - Yesterday's Success: ${lastJournal?.daily_success || 'Unknown'}
+        - Yesterday's State: ${lastJournal?.gratitude_items || 'Unknown'}
 
-    **Drafting Instructions (Macro to Micro):**
-    1. **Grounding**: Start by acknowledging the *now* (morning light, current feeling, and today's specific friction). Let them breathe into it.
-    2. **Continuity**: If there is a recurring theme in the history, acknowledge progress.
-    3. **Connection**: Weave in the "Weekly Energy" (${getDailyContext().weeklyEnergy.name}) subtly.
-    4. **The Bridge**: Connect today's friction ("${currentFocus}") to their Future Vision ("${profile.future_vision || 'their journey'}"). Show them that passing today's hurdle is building the foundation for their 5-year vision.
-    5. **Evidence-Based Power (CBT Focus)**: 
-       - Use a STRENGTH ("Yesh Bi"): "זכור את ה[יכולת] שקיימת בך..."
-       - Use a SUCCESS ("Hitzlachti"): "כשם שהצלחת ב[הישג], כך גם היום..."
-    6. **Declaration**: End with a meditative, spiritual declaration of intent. It should sound like a quiet, powerful prayer from within, not a coach shouting instructions.
-    
-    **Output:**
-    Return ONLY the Hebrew text. No explanations.
+        Generate the "Morning Intention" (כוונה) for today. Ensure it feels like a continuation of the user's journey.
+    `;
+}
+
+/**
+ * Evening-specific prompt for the "Declaration of IS".
+ */
+export function buildEveningPrompt(profile: UserProfile, journal: Partial<JournalEntry>) {
+    return `
+        Based on today's harvest (Success: ${journal.daily_success}, Capability: ${journal.capacity_used}), 
+        create a 5-line "Declaration of IS" (הצהרת היש) in PRESENT TENSE.
+        Combine today's specific victory with the vision: ${profile.future_vision}.
+        Language: Hebrew.
+    `;
+}
+
+/**
+ * Weekly Synthesis: The Living Scroll + Shadow Analysis.
+ */
+export function buildWeeklyPrompt(profile: UserProfile, weekData: { prayers: PrayerEntry[], journals: JournalEntry[], offloads: Offload[] }) {
+    return `
+        You are Kavana AI. You are writing a "Weekly Scroll" (המגילה השבועית) for ${profile.name}.
+        This is a deep synthesis of their journey over the last 7 days.
+        
+        DATA FROM THE LAST 7 DAYS:
+        - Intentions (Kavanot): ${weekData.prayers.map(p => p.content).join('\n---\n')}
+        - Harvests (Amsif): ${weekData.journals.map(j => `Success: ${j.daily_success}, Capability: ${j.capacity_used}`).join('\n---\n')}
+        - Emotional Offloads (פריקות רגשיות - RAW EMOTION): ${weekData.offloads.map(o => o.content).join('\n---\n')}
+        
+        USER VISION: ${profile.future_vision}
+        USER VALUES: ${profile.core_values?.join(', ')}
+
+        YOUR TASK:
+        1. THE LIGHT (Narrative): Identify patterns of strength. Write a cohesive story of growth from the week.
+        2. THE SHADOW (Analysis): Analyze the "Offloads" deeply. Identify recurring psychological blockers, fears, or contradictions. 
+           - Look for what the user is struggling with or avoiding.
+           - Be brave but compassionate. Use terms like "הצל" (The Shadow) or "נקודות עיוורון" (Blind Spots).
+        3. GUIDANCE: Provide one clear "Work Point" for the coming week to resolve a shadow pattern.
+        
+        TONE: Deeply philosophical, encouraging, and visionary. Hebrew language.
+        
+        OUTPUT FORMAT (JSON-like structure but as clear Hebrew text):
+        - Title: המגילה השבועית
+        - Narrative: [Prose text]
+        - Shadow Insights: [List of 2-3 specific patterns identified]
+        - Focus for next week: [Final recommendation]
     `;
 }

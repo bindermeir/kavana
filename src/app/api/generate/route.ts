@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { UserProfile } from '@/lib/storage';
+import { UserProfile, getTasks, getPrayers, getJournalEntries } from '@/lib/storage';
 import { buildSystemPrompt, buildUserPrompt } from '@/lib/ai/prompt-builder';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
@@ -9,48 +9,46 @@ export async function POST(request: Request) {
         const apiKey = process.env.GEMINI_API_KEY;
 
         if (!apiKey) {
-            return NextResponse.json(
-                { error: 'Gemini API Key is missing. Please add it to .env.local' },
-                { status: 500 }
-            );
+            return NextResponse.json({ error: 'API Key missing' }, { status: 500 });
         }
 
-        // 1. Initialize Gemini
+        // 1. Fetch real-time resources from DB (for resource injection)
+        // Note: In a real server environment, we'd use the user_id to fetch.
+        // For this architecture, we assume the profile object passed contains history or we fetch it.
+        const tasks = await getTasks();
+        const recentPrayers = await getPrayers();
+        const recentJournal = await getJournalEntries();
+
+        // 2. Initialize Gemini
         const genAI = new GoogleGenerativeAI(apiKey);
         const model = genAI.getGenerativeModel({
-            model: "gemini-1.5-flash", // Switched to 1.5-flash due to 429 Too Many Requests on 2.0
+            model: "gemini-1.5-flash",
             systemInstruction: buildSystemPrompt(profile),
-            generationConfig: {
-                temperature: 0.7, // Add a bit of creativity for poetic structure
-                topP: 0.8,
+        });
+
+        // 3. Build User Prompt with full history
+        const userPrompt = buildUserPrompt({
+            profile,
+            currentFocus: profile.current_goal || 'General Alignment',
+            history: {
+                recentPrayers: recentPrayers.slice(0, 3),
+                recentJournal: recentJournal.slice(0, 3),
+                tasks: tasks
             }
         });
 
-        // 2. Build User Prompt
-        const userPrompt = buildUserPrompt({
-            profile,
-            currentFocus: profile.current_intention || profile.life_focus_areas?.[0] || 'General Alignment',
-            history: (profile as any).history // Passed from client
-        });
-
-        // 3. Generate
-        console.log('--- Calling Gemini ---');
+        // 4. Generate
         const result = await model.generateContent(userPrompt);
         const response = await result.response;
         const generatedText = response.text();
-        console.log('--- Gemini Responded ---');
 
         return NextResponse.json({
             prayer: generatedText,
-            meta: {
-                model: 'gemini-1.5-flash',
-                timestamp: new Date().toISOString()
-            }
+            meta: { timestamp: new Date().toISOString() }
         });
 
     } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        console.error('Generation failed:', errorMessage);
-        return NextResponse.json({ error: `Failed to generate prayer: ${errorMessage}` }, { status: 500 });
+        console.error('Generation failed:', error);
+        return NextResponse.json({ error: 'Failed to generate' }, { status: 500 });
     }
 }
