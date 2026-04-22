@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Heart, Star, Zap, PenTool, Moon, Sparkles, MessageCircle, Loader2 } from 'lucide-react';
+import { Heart, Star, Zap, Moon, Sparkles, MessageCircle, Loader2, Save, Check } from 'lucide-react';
 import { saveJournalEntry, JournalEntry, getProfile, saveTask, saveOffload, Offload, UserProfile } from '@/lib/storage';
 import { toast } from 'sonner';
 
@@ -13,7 +13,6 @@ export default function JournalForm() {
         gratitude_items: '',
         daily_success: '',
         capacity_used: '',
-        declaration: '',
         date: new Date().toISOString().split('T')[0]
     });
     
@@ -21,7 +20,7 @@ export default function JournalForm() {
     const [offloadResponse, setOffloadResponse] = useState('');
     const [isProcessing, setIsProcessing] = useState(false);
     const [isSaved, setIsSaved] = useState(false);
-    const [eveningReflection, setEveningReflection] = useState('');
+    const [autoDeclaration, setAutoDeclaration] = useState('');
 
     useEffect(() => {
         const fetchProfile = async () => {
@@ -32,53 +31,59 @@ export default function JournalForm() {
     }, []);
 
     const handleSaveJournal = async () => {
-        if (!entry.daily_success) {
-            toast.error('אנא ציין הצלחה קונקרטית אחת מהיום');
+        if (!entry.daily_success || !entry.gratitude_items) {
+            toast.error('אנא מלא את כל שדות האסיף');
             return;
         }
 
         setIsProcessing(true);
-        const finalEntry = {
-            ...entry,
-            id: crypto.randomUUID(),
-            date: new Date().toISOString().split('T')[0]
-        } as JournalEntry;
-
-        await saveJournalEntry(finalEntry);
-
-        if (finalEntry.daily_success) {
-            await saveTask({
-                id: crypto.randomUUID(),
-                task_type: 'success_list',
-                content: finalEntry.daily_success,
-                completed: true,
-                date: finalEntry.date
-            });
-        }
-        if (finalEntry.capacity_used) {
-            await saveTask({
-                id: crypto.randomUUID(),
-                task_type: 'capability_list',
-                content: finalEntry.capacity_used,
-                completed: true,
-                date: finalEntry.date
-            });
-        }
-
         try {
+            // 1. Generate the automatic "Declaration of IS"
             const res = await fetch('/api/generate-evening', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ profile, journal: finalEntry })
+                body: JSON.stringify({ profile, journal: entry })
             });
             const data = await res.json();
-            if (data.reflection) setEveningReflection(data.reflection);
-        } catch (e) {
-            toast.error('היומן נשמר, אך אירעה שגיאה בייצור התפילה');
-        }
+            const declaration = data.declaration || '';
+            setAutoDeclaration(declaration);
 
-        setIsProcessing(false);
-        setIsSaved(true);
+            // 2. Save the full entry including the AI declaration
+            const finalEntry = {
+                ...entry,
+                declaration,
+                id: crypto.randomUUID(),
+                date: new Date().toISOString().split('T')[0]
+            } as JournalEntry;
+
+            await saveJournalEntry(finalEntry);
+
+            // 3. Update the Training Center (Tasks)
+            if (finalEntry.daily_success) {
+                await saveTask({
+                    id: crypto.randomUUID(),
+                    task_type: 'success_list',
+                    content: finalEntry.daily_success,
+                    completed: true,
+                    date: finalEntry.date
+                });
+            }
+            if (finalEntry.capacity_used) {
+                await saveTask({
+                    id: crypto.randomUUID(),
+                    task_type: 'capability_list',
+                    content: finalEntry.capacity_used,
+                    completed: true,
+                    date: finalEntry.date
+                });
+            }
+
+            setIsSaved(true);
+        } catch (e) {
+            toast.error('אירעה שגיאה בייצור הצהרת היש');
+        } finally {
+            setIsProcessing(false);
+        }
     };
 
     const handleOffload = async () => {
@@ -90,7 +95,7 @@ export default function JournalForm() {
             date: new Date().toISOString().split('T')[0],
             timestamp: new Date().toISOString()
         };
-        setOffloadResponse("תודה ששיחררת את זה. הדיו ספג את הכל והפך את זה לכוונה שקטה.");
+        setOffloadResponse("הדברים נשמעו ונרשמו בלוח הלב. עכשיו אפשר לשחרר ולהיכנס לשקט.");
         await saveOffload(offload);
         setIsProcessing(false);
     };
@@ -100,8 +105,8 @@ export default function JournalForm() {
             <div className="flex flex-col items-center justify-center py-24 space-y-6">
                 <Loader2 className="w-12 h-12 text-accent-active animate-spin" />
                 <div className="text-center">
-                    <h2 className="text-2xl font-bold text-sacred">מעבד את האסיף...</h2>
-                    <p className="text-sm text-text-secondary">מלקט את רגעי האור של היום</p>
+                    <h2 className="text-2xl font-bold text-sacred">יוצר הצהרת יש...</h2>
+                    <p className="text-sm text-text-secondary italic">מזקק את הצלחות היום למציאות שלמה</p>
                 </div>
             </div>
         );
@@ -109,30 +114,33 @@ export default function JournalForm() {
 
     if (isSaved) {
         return (
-            <div className="py-6 space-y-8 animate-in fade-in duration-700">
+            <div className="py-6 space-y-8 animate-in fade-in duration-700 max-w-md mx-auto">
                 <div className="text-center space-y-3">
-                    <div className="w-16 h-16 bg-accent-active/10 rounded-full flex items-center justify-center mx-auto text-accent-active">
-                        <Moon className="w-8 h-8 flame-breathe" />
+                    <div className="w-16 h-16 bg-accent-active/10 rounded-full flex items-center justify-center mx-auto text-accent-active shadow-inner">
+                        <Check className="w-8 h-8" />
                     </div>
-                    <h2 className="text-3xl font-bold text-sacred">האסיף נשמר</h2>
+                    <h2 className="text-3xl font-bold text-sacred">האסיף הושלם</h2>
+                    <p className="text-text-secondary italic">הצהרת היש שלך ללילה זה:</p>
                 </div>
 
-                {eveningReflection && (
-                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="sacred-card">
-                        <h3 className="text-xs font-bold text-accent-active mb-3 flex items-center gap-2">
-                            <Sparkles className="w-4 h-4" /> תפילת לילה:
-                        </h3>
-                        <p className="text-xl leading-relaxed text-sacred whitespace-pre-wrap font-light">{eveningReflection}</p>
-                    </motion.div>
-                )}
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="sacred-card p-8 border-accent-active/20 bg-accent-active/5">
+                    <h3 className="text-xs font-bold text-accent-active mb-6 flex items-center gap-2 uppercase tracking-widest">
+                        <Sparkles className="w-4 h-4" /> הצהרת היש
+                    </h3>
+                    <p className="text-xl leading-relaxed text-sacred italic whitespace-pre-wrap font-light text-center">
+                        {autoDeclaration}
+                    </p>
+                </motion.div>
 
-                <button onClick={() => { setIsSaved(false); setEveningReflection(''); setMode('journal'); }} className="btn-primary w-full py-4">כתוב שוב</button>
+                <div className="space-y-4 pt-6">
+                    <button onClick={() => { setIsSaved(false); setAutoDeclaration(''); setMode('journal'); }} className="btn-primary w-full py-4 text-lg">סגור לילה טוב</button>
+                </div>
             </div>
         );
     }
 
     return (
-        <div className="space-y-8 pt-2">
+        <div className="space-y-8 pt-2 pb-20">
             <div className="flex p-1 bg-black/5 rounded-2xl gap-1">
                 <button onClick={() => setMode('journal')} className={`flex-1 py-3 rounded-xl text-sm font-bold transition-all ${mode === 'journal' ? 'bg-white shadow-sm text-accent-active' : 'text-text-secondary'}`}>אסיף יומי</button>
                 <button onClick={() => setMode('offload')} className={`flex-1 py-3 rounded-xl text-sm font-bold transition-all ${mode === 'offload' ? 'bg-white shadow-sm text-accent-active' : 'text-text-secondary'}`}>פריקה</button>
@@ -147,23 +155,23 @@ export default function JournalForm() {
                         </div>
 
                         <div className="space-y-6">
-                            <Section icon={Heart} title="מה עבד היום? (הודיה)">
-                                <textarea className="input w-full h-24" placeholder="כתוב מה עבד היום..." value={entry.gratitude_items || ''} onChange={e => setEntry(prev => ({ ...prev, gratitude_items: e.target.value }))} />
+                            <Section icon={Heart} title="הכרת הטוב">
+                                <textarea className="input w-full h-24" placeholder="מה עבד היום? מה שימח אותך?" value={entry.gratitude_items || ''} onChange={e => setEntry(prev => ({ ...prev, gratitude_items: e.target.value }))} />
                             </Section>
 
-                            <Section icon={Star} title="הצלחה קונקרטית אחת">
+                            <Section icon={Star} title="הצלחה יומית">
                                 <textarea className="input w-full h-24" placeholder="הצלחתי ל..." value={entry.daily_success || ''} onChange={e => setEntry(prev => ({ ...prev, daily_success: e.target.value }))} />
                             </Section>
 
-                            <Section icon={Zap} title="יכולת שהפעלתי">
-                                <input className="input w-full" placeholder="סבלנות, יצירתיות..." value={entry.capacity_used || ''} onChange={e => setEntry(prev => ({ ...prev, capacity_used: e.target.value }))} />
+                            <Section icon={Zap} title="יכולת בשימוש">
+                                <input className="input w-full" placeholder="אילו יכולות הפעלת היום?" value={entry.capacity_used || ''} onChange={e => setEntry(prev => ({ ...prev, capacity_used: e.target.value }))} />
                             </Section>
 
-                            <Section icon={PenTool} title="הצהרת היש">
-                                <textarea className="input w-full h-20" placeholder="אני מלא ב..." value={entry.declaration || ''} onChange={e => setEntry(prev => ({ ...prev, declaration: e.target.value }))} />
-                            </Section>
-
-                            <button onClick={handleSaveJournal} className="btn-primary w-full py-4 text-xl shadow-xl">שמור ביומן</button>
+                            <div className="pt-4">
+                                <button onClick={handleSaveJournal} className="btn-primary w-full py-5 text-xl shadow-xl flex items-center justify-center gap-3">
+                                    <Save className="w-6 h-6" /> סיים אסיף וצור הצהרה
+                                </button>
+                            </div>
                         </div>
                     </motion.div>
                 ) : (

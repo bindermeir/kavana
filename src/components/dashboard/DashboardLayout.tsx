@@ -2,22 +2,22 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Moon, BookOpen, Compass, User, Loader2 } from 'lucide-react';
+import { Sparkles, Moon, ListChecks, MessageCircle, User, Loader2 } from 'lucide-react';
 import MorningTab from './MorningTab';
 import JournalForm from '../journal/JournalForm';
 import ProfileTab from './ProfileTab';
-import InsightsTab from './InsightsTab';
+import InsightsTab from './InsightsTab'; // This will be the "מנחה" (Guide/Insights)
+import TasksList from '../tasks/TasksList'; // This will be the "צעדים" (Steps/Training Center)
 import Menorah from './Menorah';
-import PrayerBookTab from './PrayerBookTab';
-import FloatingOffloadButton from '../offload/FloatingOffloadButton';
 import DateDisplay from '../ui/DateDisplay';
+import FloatingOffloadButton from '../offload/FloatingOffloadButton';
 import { getProfile, UserProfile } from '@/lib/storage';
 
 const TABS = [
-    { id: 'morning', name: 'בוקר', icon: Sparkles, component: MorningTab },
-    { id: 'evening', name: 'ערב', icon: Moon, component: JournalForm },
-    { id: 'prayerbook', name: 'הספר שלי', icon: BookOpen, component: PrayerBookTab },
-    { id: 'insights', name: 'תובנות', icon: Compass, component: InsightsTab },
+    { id: 'morning', name: 'כוונה', icon: Sparkles, component: MorningTab },
+    { id: 'evening', name: 'אסיף', icon: Moon, component: JournalForm },
+    { id: 'steps', name: 'צעדים', icon: ListChecks, component: TasksList },
+    { id: 'guide', name: 'מנחה', icon: MessageCircle, component: InsightsTab },
     { id: 'profile', name: 'פרופיל', icon: User, component: ProfileTab },
 ];
 
@@ -76,8 +76,8 @@ export default function DashboardLayout() {
                             />
                         )}
                         {activeTab === 'evening' && <JournalForm />}
-                        {activeTab === 'prayerbook' && <PrayerBookTab />}
-                        {activeTab === 'insights' && <InsightsTab />}
+                        {activeTab === 'steps' && <TasksList tasks={[]} onCreateTask={() => {}} onUpdateTask={() => {}} />}
+                        {activeTab === 'guide' && <InsightsTab />}
                         {activeTab === 'profile' && profile && <ProfileTab profile={profile} />}
                     </motion.div>
                 </AnimatePresence>
@@ -106,7 +106,7 @@ export default function DashboardLayout() {
                                             transition={{ type: "spring", stiffness: 500, damping: 30 }}
                                         />
                                     )}
-                                    <Icon className={`w-6 h-6 mb-1 transition-transform ${isActive ? 'scale-110' : ''}`} />
+                                    <Icon className={`w-5 h-5 mb-1 transition-transform ${isActive ? 'scale-110' : ''}`} />
                                     <span className={`text-[10px] font-bold ${isActive ? 'opacity-100' : 'opacity-60'}`}>
                                         {tab.name}
                                     </span>

@@ -4,13 +4,14 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { UserProfile, saveProfile } from '@/lib/storage';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, ArrowRight, Check, Sparkles, Loader2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Sparkles, Loader2, Heart, Star, Shield, Target, MessageSquare, Briefcase, Zap } from 'lucide-react';
 import { toast } from 'sonner';
 
 const INITIAL_PROFILE: Partial<UserProfile> = {
     core_values: [],
     prayer_meaning: [],
     content_boundaries: [],
+    personal_abilities: [],
     onboarding_completed: false,
     tone: 'Adaptive',
     addressing_mode: 'Direct'
@@ -34,7 +35,7 @@ export default function OnboardingWizard() {
         });
     };
 
-    const nextStep = () => setStep(prev => Math.min(prev + 1, 11));
+    const nextStep = () => setStep(prev => Math.min(prev + 1, 9));
     const prevStep = () => setStep(prev => Math.max(prev - 1, 0));
 
     const finishOnboarding = async () => {
@@ -54,11 +55,11 @@ export default function OnboardingWizard() {
         }
     };
 
-    const totalSteps = 12;
+    const totalSteps = 10;
 
     const steps = [
-        // Step 1: Identity
-        <Step key="identity" title="מי אני?" subtitle="בואו נתחיל בהיכרות בסיסית">
+        // Step 1: Identity & Basics
+        <Step key="identity" title="שלב 1: בואו נכיר - שלב ראשון" subtitle="נתחיל בבסיס, כמה שאלות שיעזרו לנו להכיר אותך">
             <div className="space-y-8">
                 <div className="space-y-2">
                     <label className="block text-xs font-bold text-text-secondary uppercase tracking-widest">איך נקרא לך?</label>
@@ -73,7 +74,7 @@ export default function OnboardingWizard() {
                 <div className="space-y-4">
                     <label className="block text-xs font-bold text-text-secondary uppercase tracking-widest">מערכת אמונות</label>
                     <div className="grid grid-cols-2 gap-3">
-                        {['חילוני', 'מסורתי', 'דתי', 'רוחני', 'אחר'].map(tag => (
+                        {['חילוני', 'מסורתי', 'דתי', 'רוחני', 'ניו אייג\'', 'אחר'].map(tag => (
                             <SelectButton
                                 key={tag}
                                 selected={formData.belief_system === tag}
@@ -87,33 +88,11 @@ export default function OnboardingWizard() {
             </div>
         </Step>,
 
-        // Step 2: Prayer Meaning
-        <Step key="prayer" title="מהי תפילה עבורך?" subtitle="הגדרת הדיאלוג הפנימי">
-            <div className="grid gap-3">
-                {[
-                    { id: 'חיבור פנימי', label: 'חיבור פנימי' },
-                    { id: 'שיח עם אלוהים', label: 'שיח עם אלוהים' },
-                    { id: 'מדיטציה', label: 'מדיטציה' },
-                    { id: 'טקס אישי', label: 'טקס אישי' },
-                    { id: 'שפה תרבותית', label: 'שפה תרבותית' }
-                ].map(item => (
-                    <SelectButton
-                        key={item.id}
-                        selected={formData.prayer_meaning?.includes(item.id)}
-                        onClick={() => toggleArrayItem('prayer_meaning', item.id)}
-                        className="w-full py-5 text-lg"
-                    >
-                        {item.label}
-                    </SelectButton>
-                ))}
-            </div>
-        </Step>,
-
-        // Step 3: Core Values
-        <Step key="values" title="ערכי ליבה" subtitle="מה מניע אותך בחיים? (בחר 3)">
+        // Step 2: Values
+        <Step key="values" title="שלב 2: עולם הערכים שלך" subtitle="מה באמת חשוב לך בחיים?">
             <div className="grid grid-cols-2 gap-3">
                 {[
-                    'משפחה', 'חופש', 'משמעות', 'צמיחה', 'שפע', 'רוחניות', 'עומק רגשי', 'שקט'
+                    'משפחה', 'חופש', 'משמעות', 'צמיחה', 'שפע', 'רוחניות', 'עומק רגשי', 'שקט', 'נתינה', 'אמת'
                 ].map(val => (
                     <SelectButton
                         key={val}
@@ -126,31 +105,150 @@ export default function OnboardingWizard() {
             </div>
         </Step>,
 
-        // Step 11: Vision
-        <Step key="vision" title="החזון הגדול" subtitle="לאן אנחנו הולכים?">
+        // Step 3: Emotional State
+        <Step key="state" title="שלב 3: המצב הרגשי שלך" subtitle="איפה אתה נמצא היום?">
+            <div className="grid grid-cols-2 gap-3">
+                {['מחפש כיוון', 'ביציבות', 'בשינוי גדול', 'עייפות רגשית', 'בתנופת עשייה', 'תהליך ריפוי'].map(st => (
+                    <SelectButton
+                        key={st}
+                        selected={formData.current_state === st}
+                        onClick={() => updateField('current_state', st)}
+                    >
+                        {st}
+                    </SelectButton>
+                ))}
+            </div>
+        </Step>,
+
+        // Step 4: Relationships
+        <Step key="relationship" title="שלב 4: זוגיות ואינטימיות" subtitle="איך נדבר על זוגיות בטקסטים?">
             <div className="space-y-6">
-                <div className="space-y-2">
-                    <label className="block text-xs font-bold text-text-secondary uppercase tracking-widest">כוכב הצפון (1-5 שנים)</label>
-                    <textarea className="input w-full h-32 resize-none text-xl" value={formData.future_vision || ''} onChange={e => updateField('future_vision', e.target.value)} placeholder="איפה אתה רואה את עצמך?" />
+                <div className="grid grid-cols-2 gap-3">
+                    {['בעדינות ורגישות', 'בישירות ופרקטיות', 'כמיהה לעתיד', 'חיזוק הקיים'].map(opt => (
+                        <SelectButton
+                            key={opt}
+                            selected={formData.relationship_approach_in_texts === opt}
+                            onClick={() => updateField('relationship_approach_in_texts', opt)}
+                        >
+                            {opt}
+                        </SelectButton>
+                    ))}
                 </div>
-                <div className="space-y-2">
-                    <label className="block text-xs font-bold text-text-secondary uppercase tracking-widest">מטרה תקופתית</label>
-                    <input className="input w-full text-lg" value={formData.current_goal || ''} onChange={e => updateField('current_goal', e.target.value)} placeholder="היעד הקרוב שלי..." />
+                <input 
+                    className="input w-full" 
+                    placeholder="סטטוס זוגי..." 
+                    value={formData.relationship_status || ''} 
+                    onChange={e => updateField('relationship_status', e.target.value)} 
+                />
+            </div>
+        </Step>,
+
+        // Step 5: Career & Money
+        <Step key="career" title="שלב 5: עבודה, כסף ושפע" subtitle="המקום של עבודה וכסף בחיים שלך">
+            <div className="grid grid-cols-2 gap-3">
+                {['הישרדות', 'בנייה', 'התרחבות', 'שפע', 'חיפוש כיוון', 'איזון'].map(s => (
+                    <SelectButton
+                        key={s}
+                        selected={formData.work_money_place === s}
+                        onClick={() => updateField('work_money_place', s)}
+                    >
+                        {s}
+                    </SelectButton>
+                ))}
+            </div>
+        </Step>,
+
+        // Step 6: Tradition & Philosophy
+        <Step key="tradition" title="שלב 6: חיבור למסורת ופילוסופיה" subtitle="לאילו עולמות תרבותיים אתה מרגיש חיבור?">
+            <div className="grid grid-cols-2 gap-3">
+                {['יהדות', 'קבלה', 'תנ"ך', 'בודהיזם', 'סטואה', 'פסיכולוגיה', 'מדע', 'אחר'].map(t => (
+                    <SelectButton
+                        key={t}
+                        selected={formData.cultural_connections?.includes(t)}
+                        onClick={() => toggleArrayItem('cultural_connections', t)}
+                    >
+                        {t}
+                    </SelectButton>
+                ))}
+            </div>
+        </Step>,
+
+        // Step 7: Strengths (The Gold for AI)
+        <Step key="strengths" title="שלב 7: החוזקות שלך" subtitle="מה אתה מזהה בעצמך? (זה זהב ל-AI)">
+            <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                    {['הקשבה', 'רגישות', 'אומץ', 'חוסן', 'יצירתיות', 'מנהיגות'].map(s => (
+                        <SelectButton
+                            key={s}
+                            selected={formData.personal_abilities?.includes(s)}
+                            onClick={() => toggleArrayItem('personal_abilities', s)}
+                        >
+                            {s}
+                        </SelectButton>
+                    ))}
+                </div>
+                <textarea 
+                    className="input w-full h-32" 
+                    placeholder="עוד חוזקות וכישורים שיש לך..." 
+                    value={formData.inspiring_people || ''} 
+                    onChange={e => updateField('inspiring_people', e.target.value)} 
+                />
+            </div>
+        </Step>,
+
+        // Step 8: Boundaries & Tone
+        <Step key="boundaries" title="שלב 8: גבולות ושפה" subtitle="מה חשוב לך שלא יופיע בטקסטים?">
+            <div className="space-y-6">
+                <div className="grid grid-cols-2 gap-3">
+                    {['שפה דתית', 'אלוהים', 'שפה מינית', 'רגשני מדי', 'רוחני מדי'].map(b => (
+                        <SelectButton
+                            key={b}
+                            selected={formData.content_boundaries?.includes(b)}
+                            onClick={() => toggleArrayItem('content_boundaries', b)}
+                        >
+                            {b}
+                        </SelectButton>
+                    ))}
+                </div>
+                <div className="flex gap-3">
+                    {['Direct', 'Soft', 'Poetic'].map(t => (
+                        <SelectButton key={t} selected={formData.tone === t} onClick={() => updateField('tone', t)} className="flex-1">
+                            {t === 'Direct' ? 'ישיר' : t === 'Soft' ? 'רך' : 'פיוטי'}
+                        </SelectButton>
+                    ))}
                 </div>
             </div>
         </Step>,
 
-        // Step 12: Final
-        <Step key="finish" title="ההיכל מוכן" subtitle="הפרופיל שלך הושלם">
-            <div className="space-y-8 text-center py-10">
-                <div className="w-32 h-32 rounded-full bg-accent-active/10 mx-auto flex items-center justify-center shadow-inner">
-                    <Check className="w-16 h-16 text-accent-active" />
+        // Step 9: Usage & Reminders
+        <Step key="usage" title="שלב 9: קצב ושימוש" subtitle="איך תרצה להשתמש באפליקציה?">
+            <div className="space-y-6">
+                <div className="grid grid-cols-2 gap-3">
+                    {['בוקר וערב', 'רק בבוקר', 'רק בערב', 'פריקה רגשית בלבד'].map(u => (
+                        <SelectButton key={u} selected={formData.usage_mode === u} onClick={() => updateField('usage_mode', u)}>
+                            {u}
+                        </SelectButton>
+                    ))}
                 </div>
-                <div className="space-y-4">
-                    <h3 className="text-3xl font-bold text-sacred">ברוך הבא, {formData.name}</h3>
-                    <p className="text-text-secondary italic text-lg leading-relaxed px-4">
-                        המערכת מוכנה לייצר עבורך כוונות מדויקות המבוססות על מי שאתה ועל לאן שאתה שואף להגיע.
-                    </p>
+                <div className="flex gap-4">
+                    <div className="flex-1 space-y-2">
+                        <label className="block text-[10px] font-bold text-text-secondary uppercase">תזכורת בוקר</label>
+                        <input type="time" className="input w-full" value={formData.morning_reminder_time || '07:00'} onChange={e => updateField('morning_reminder_time', e.target.value)} />
+                    </div>
+                    <div className="flex-1 space-y-2">
+                        <label className="block text-[10px] font-bold text-text-secondary uppercase">תזכורת ערב</label>
+                        <input type="time" className="input w-full" value={formData.evening_reminder_time || '21:00'} onChange={e => updateField('evening_reminder_time', e.target.value)} />
+                    </div>
+                </div>
+            </div>
+        </Step>,
+
+        // Step 10: The Big Question
+        <Step key="goal" title="שלב 10: השאלה הכי חשובה" subtitle="מה תרצה לקבל מהטקסטים?">
+            <div className="space-y-6">
+                <textarea className="input w-full h-40 text-xl" placeholder="המטרה שלי בשימוש ב-Kavana AI היא..." value={formData.current_goal || ''} onChange={e => updateField('current_goal', e.target.value)} />
+                <div className="p-6 bg-accent-active/5 rounded-2xl text-center italic text-sacred">
+                    "סיימת את מסע ההיכרות! כל השלבים הושלמו. המערכת מכירה אותך עמוק ויכולה ליצור תוכן מותאם במיוחד עבורך."
                 </div>
             </div>
         </Step>
@@ -176,19 +274,19 @@ export default function OnboardingWizard() {
             <div className="flex-1 px-6 max-w-lg mx-auto w-full">
                 <AnimatePresence mode="wait">
                     <motion.div key={step} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="h-full">
-                        {steps[step] || steps[0]}
+                        {steps[step]}
                     </motion.div>
                 </AnimatePresence>
             </div>
 
             <footer className="p-6 safe-bottom max-w-lg mx-auto w-full">
                 <button
-                    onClick={step === steps.length - 1 ? finishOnboarding : nextStep}
+                    onClick={step === totalSteps - 1 ? finishOnboarding : nextStep}
                     disabled={isSaving}
                     className="btn-primary w-full py-5 text-xl flex items-center justify-center gap-3"
                 >
                     {isSaving ? <Loader2 className="w-6 h-6 animate-spin" /> : 
-                     step === steps.length - 1 ? <><Sparkles className="w-6 h-6" /> צא לדרך</> : 
+                     step === totalSteps - 1 ? <><Sparkles className="w-6 h-6" /> צא לדרך</> : 
                      <>המשך <ArrowLeft className="w-6 h-6" /></>}
                 </button>
             </footer>
@@ -200,8 +298,8 @@ function Step({ title, subtitle, children }: { title: string, subtitle?: string,
     return (
         <div className="space-y-8">
             <div className="text-center sm:text-right">
-                <h1 className="text-4xl font-bold text-sacred mb-2">{title}</h1>
-                {subtitle && <p className="text-text-secondary italic text-lg">{subtitle}</p>}
+                <h1 className="text-3xl font-bold text-sacred mb-2">{title}</h1>
+                {subtitle && <p className="text-text-secondary italic text-lg leading-tight">{subtitle}</p>}
             </div>
             {children}
         </div>
