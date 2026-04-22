@@ -5,7 +5,12 @@ import { NextResponse } from 'next/server';
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const code = searchParams.get('code');
-    const next = searchParams.get('next') ?? '/login';
+    // Default to /dashboard after successful login, NOT /login (which causes a loop)
+    const next = searchParams.get('next') ?? '/dashboard';
+
+    const protocol = request.headers.get('x-forwarded-proto') || 'https';
+    const host = request.headers.get('host');
+    const baseUrl = `${protocol}://${host}`;
 
     if (code) {
         const cookieStore = await cookies();
@@ -28,10 +33,6 @@ export async function GET(request: Request) {
         );
 
         const { error } = await supabase.auth.exchangeCodeForSession(code);
-        
-        const protocol = request.headers.get('x-forwarded-proto') || 'https';
-        const host = request.headers.get('host');
-        const baseUrl = `${protocol}://${host}`;
 
         if (!error) {
             const response = NextResponse.redirect(`${baseUrl}${next}`);
@@ -40,10 +41,8 @@ export async function GET(request: Request) {
         }
     }
 
-    const protocol = request.headers.get('x-forwarded-proto') || 'https';
-    const host = request.headers.get('host');
-    const baseUrl = `${protocol}://${host}`;
-    const errorResponse = NextResponse.redirect(`${baseUrl}/`);
+    // On error, redirect to login page
+    const errorResponse = NextResponse.redirect(`${baseUrl}/login`);
     errorResponse.headers.set('Cache-Control', 'no-store, max-age=0');
     return errorResponse;
 }

@@ -3,7 +3,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session, AuthError, AuthChangeEvent } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
-import { useRouter } from 'next/navigation';
 
 interface AuthContextType {
     user: User | null;
@@ -21,47 +20,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
     const [session, setSession] = useState<Session | null>(null);
     const [loading, setLoading] = useState(true);
-    const router = useRouter();
 
     useEffect(() => {
         // Get initial session
-        const initSession = async () => {
-            try {
-                // Try to get session from URL first (in case of hash redirect)
-                if (window.location.hash.includes('access_token')) {
-                    await supabase.auth.getSession();
-                }
-
-                const { data: { session: initialSession }, error } = await supabase.auth.getSession();
-                if (error) throw error;
-
-                if (initialSession) {
-                    setSession(initialSession);
-                    setUser(initialSession.user);
-                }
-            } catch (err) {
-                console.error('Error initializing session:', err);
-            } finally {
-                setLoading(false);
-            }
-        };
-        initSession();
-
-        // Listen for auth changes
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: AuthChangeEvent, newSession: Session | null) => {
-            setSession(newSession);
-            setUser(newSession?.user ?? null);
+        supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
+            setSession(initialSession);
+            setUser(initialSession?.user ?? null);
             setLoading(false);
-
-            // If we just signed in, let's make sure the cookies are synced
-            if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-                // This helps ensure the next server-side request sees the cookie
-                router.refresh();
-            }
         });
 
+        // Listen for auth state changes
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(
+            (_event: AuthChangeEvent, newSession: Session | null) => {
+                setSession(newSession);
+                setUser(newSession?.user ?? null);
+                setLoading(false);
+            }
+        );
+
         return () => subscription.unsubscribe();
-    }, [supabase]);
+    }, []);
 
     const signInWithEmail = async (email: string, password: string) => {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
