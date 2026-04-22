@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { getProfile } from '@/lib/storage';
+import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Sparkles, ArrowLeft, Heart, Sun, Moon } from 'lucide-react';
@@ -13,15 +14,22 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function checkProfile() {
+    async function checkState() {
       const profile = await getProfile();
       if (profile) {
         router.push('/dashboard');
+        return;
+      }
+      
+      // If no profile, check if they are at least logged in
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        router.push('/onboarding');
       } else {
         setLoading(false);
       }
     }
-    checkProfile();
+    checkState();
   }, [router]);
 
   if (loading) {
