@@ -3,7 +3,7 @@ import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 
 export async function GET(request: Request) {
-    const { searchParams, origin } = new URL(request.url);
+    const { searchParams } = new URL(request.url);
     const code = searchParams.get('code');
     const next = searchParams.get('next') ?? '/login';
 
@@ -29,19 +29,21 @@ export async function GET(request: Request) {
 
         const { error } = await supabase.auth.exchangeCodeForSession(code);
         
-        // Use the host from headers or a safe fallback to ensure we redirect back to the app, not Supabase
         const protocol = request.headers.get('x-forwarded-proto') || 'https';
         const host = request.headers.get('host');
         const baseUrl = `${protocol}://${host}`;
 
         if (!error) {
-            return NextResponse.redirect(`${baseUrl}${next}`);
+            const response = NextResponse.redirect(`${baseUrl}${next}`);
+            response.headers.set('Cache-Control', 'no-store, max-age=0');
+            return response;
         }
     }
 
-    // Return to homepage on error
     const protocol = request.headers.get('x-forwarded-proto') || 'https';
     const host = request.headers.get('host');
     const baseUrl = `${protocol}://${host}`;
-    return NextResponse.redirect(`${baseUrl}/`);
+    const errorResponse = NextResponse.redirect(`${baseUrl}/`);
+    errorResponse.headers.set('Cache-Control', 'no-store, max-age=0');
+    return errorResponse;
 }
