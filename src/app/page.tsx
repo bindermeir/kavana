@@ -12,12 +12,15 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const profile = getProfile();
-    if (profile) {
-      router.push('/dashboard');
-    } else {
-      setLoading(false);
+    async function checkProfile() {
+      const profile = await getProfile();
+      if (profile) {
+        router.push('/dashboard');
+      } else {
+        setLoading(false);
+      }
     }
+    checkProfile();
   }, [router]);
 
   if (loading) {

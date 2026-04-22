@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import moment from 'moment-timezone';
 import { getZadokDate, ZadokDate } from '@/lib/calendar/zadokCalendar';
-import HDate from 'hebcal';
+const { HDate } = require('hebcal');
 
 export default function DateDisplay({ timezone = 'Asia/Jerusalem' }) {
   const [zadokInfo, setZadokInfo] = useState<ZadokDate | null>(null);

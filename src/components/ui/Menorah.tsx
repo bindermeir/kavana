@@ -1,10 +1,9 @@
 "use client";
 
 import React from 'react';
-import { getDay } from 'date-fns';
 
 export default function Menorah() {
-  const dayOfWeek = getDay(new Date()); // 0 (Sun) to 6 (Sat)
+  const dayOfWeek = new Date().getDay(); // 0 (Sun) to 6 (Sat)
 
   const getCandleColor = (candleNum: number) => {
     const litColor = "#D4A574"; // Warm bronze/gold

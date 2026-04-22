@@ -12,12 +12,18 @@ export default function GuideTab() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const prayers = getPrayers().map(p => ({ type: 'prayer', data: p, dateObj: new Date(p.date) } as TimelineItem));
-        const journal = getJournalEntries().map(j => ({ type: 'journal', data: j, dateObj: new Date(j.date) } as TimelineItem));
+        async function loadItems() {
+            const prayersData = await getPrayers();
+            const journalData = await getJournalEntries();
+            
+            const prayers = prayersData.map(p => ({ type: 'prayer', data: p, dateObj: new Date(p.date) } as TimelineItem));
+            const journal = journalData.map(j => ({ type: 'journal', data: j, dateObj: new Date(j.date) } as TimelineItem));
 
-        const combined = [...prayers, ...journal].sort((a, b) => b.dateObj.getTime() - a.dateObj.getTime());
-        setItems(combined);
-        setLoading(false);
+            const combined = [...prayers, ...journal].sort((a, b) => b.dateObj.getTime() - a.dateObj.getTime());
+            setItems(combined);
+            setLoading(false);
+        }
+        loadItems();
     }, []);
 
     if (loading) return <div className="text-center py-20 opacity-50">טוען היסטוריה...</div>;

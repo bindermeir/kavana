@@ -76,7 +76,7 @@ export default function DashboardLayout() {
                             />
                         )}
                         {activeTab === 'evening' && <JournalForm />}
-                        {activeTab === 'steps' && <TasksList tasks={[]} onCreateTask={() => {}} onUpdateTask={() => {}} />}
+                        {activeTab === 'steps' && <TasksList />}
                         {activeTab === 'guide' && <InsightsTab />}
                         {activeTab === 'profile' && profile && <ProfileTab profile={profile} />}
                     </motion.div>

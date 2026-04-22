@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session, AuthError, AuthChangeEvent } from '@supabase/supabase-js';
-import { getSupabaseClient } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
 
 interface AuthContextType {
     user: User | null;
@@ -20,8 +20,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
     const [session, setSession] = useState<Session | null>(null);
     const [loading, setLoading] = useState(true);
-
-    const supabase = getSupabaseClient();
 
     useEffect(() => {
         // Get initial session

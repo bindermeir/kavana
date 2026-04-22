@@ -18,9 +18,10 @@ export default function OffloadModal({ onClose }: { onClose: () => void }) {
         
         try {
             // Save offload to storage
+            const profile = await getProfile();
             const offload = {
                 id: crypto.randomUUID(),
-                user_id: getProfile()?.id || 'guest',
+                user_id: profile?.id || 'guest',
                 content: content,
                 date: new Date().toISOString().split('T')[0],
                 timestamp: new Date().toISOString()

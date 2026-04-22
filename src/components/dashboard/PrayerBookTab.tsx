@@ -19,26 +19,32 @@ export default function PrayerBookTab() {
     const [viewMode, setViewMode] = useState<ViewMode>('all');
 
     useEffect(() => {
-        const prayers = getPrayers().map(p => ({ 
-            type: 'prayer' as const, 
-            data: p, 
-            dateObj: new Date(p.date),
-            zadok: getZadokDate(new Date(p.date)).displayText
-        }));
-        const journal = getJournalEntries().map(j => ({ 
-            type: 'journal' as const, 
-            data: j, 
-            dateObj: new Date(j.date),
-            zadok: getZadokDate(new Date(j.date)).displayText
-        }));
-        
-        const combined = [...prayers, ...journal].sort((a, b) => b.dateObj.getTime() - a.dateObj.getTime());
-        setItems(combined);
+        async function loadItems() {
+            const prayersData = await getPrayers();
+            const journalData = await getJournalEntries();
 
-        const storedFavorites = localStorage.getItem('kavana_favorites');
-        if (storedFavorites) {
-            setFavorites(JSON.parse(storedFavorites));
+            const prayers = prayersData.map(p => ({ 
+                type: 'prayer' as const, 
+                data: p, 
+                dateObj: new Date(p.date),
+                zadok: getZadokDate(new Date(p.date)).displayText
+            }));
+            const journal = journalData.map(j => ({ 
+                type: 'journal' as const, 
+                data: j, 
+                dateObj: new Date(j.date),
+                zadok: getZadokDate(new Date(j.date)).displayText
+            }));
+            
+            const combined = [...prayers, ...journal].sort((a, b) => b.dateObj.getTime() - a.dateObj.getTime());
+            setItems(combined);
+
+            const storedFavorites = localStorage.getItem('kavana_favorites');
+            if (storedFavorites) {
+                setFavorites(JSON.parse(storedFavorites));
+            }
         }
+        loadItems();
     }, []);
 
     const toggleFavorite = (prayerId: string) => {
