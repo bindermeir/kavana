@@ -12,6 +12,9 @@ import Menorah from './Menorah';
 import DateDisplay from '../ui/DateDisplay';
 import FloatingOffloadButton from '../offload/FloatingOffloadButton';
 import { getProfile, UserProfile } from '@/lib/storage';
+import { useAuth } from '../auth/AuthProvider';
+import { supabase } from '@/lib/supabase';
+import { LogOut } from 'lucide-react';
 
 const TABS = [
     { id: 'morning', name: 'כוונה', icon: Sparkles, component: MorningTab },
@@ -26,6 +29,7 @@ export default function DashboardLayout() {
     const [isIgniting, setIsIgniting] = useState(false);
     const [profile, setProfile] = useState<UserProfile | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const { user } = useAuth();
 
     useEffect(() => {
         const fetchProfile = async () => {
@@ -36,7 +40,13 @@ export default function DashboardLayout() {
         fetchProfile();
     }, []);
 
+    const handleLogout = async () => {
+        await supabase.auth.signOut();
+        window.location.href = '/';
+    };
+
     const dayOfWeek = new Date().getDay();
+    const displayName = profile?.name || user?.user_metadata?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || '';
 
     if (isLoading) {
         return (
@@ -50,6 +60,35 @@ export default function DashboardLayout() {
     return (
         <div className="min-h-screen min-h-[100dvh] pb-24 transition-colors duration-500 relative bg-[#E8E2D2]">
             <main className="container-app relative z-10 max-w-lg mx-auto px-4">
+                {/* User Header */}
+                <div className="pt-6 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        {user?.user_metadata?.avatar_url ? (
+                            <img 
+                                src={user.user_metadata.avatar_url} 
+                                alt="Profile" 
+                                className="w-10 h-10 rounded-full border-2 border-accent-active/20"
+                            />
+                        ) : (
+                            <div className="w-10 h-10 rounded-full bg-accent-active/10 flex items-center justify-center">
+                                <User className="w-6 h-6 text-accent-active" />
+                            </div>
+                        )}
+                        <div>
+                            <p className="text-xs text-text-secondary">שלום,</p>
+                            <p className="text-sm font-bold text-text-primary">{displayName}</p>
+                        </div>
+                    </div>
+                    
+                    <button 
+                        onClick={handleLogout}
+                        className="p-2 rounded-xl hover:bg-black/5 text-text-secondary transition-colors"
+                        title="התנתק"
+                    >
+                        <LogOut className="w-5 h-5" />
+                    </button>
+                </div>
+
                 {/* Visual Anchor: Menorah */}
                 <motion.div
                     initial={{ opacity: 0, y: -20 }}

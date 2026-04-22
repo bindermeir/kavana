@@ -6,15 +6,19 @@ import { getProfile } from '@/lib/storage';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Sparkles, ArrowLeft, Heart, Sun, Moon } from 'lucide-react';
+import { Sparkles, ArrowLeft, Heart, Sun, Moon, Loader2 } from 'lucide-react';
 import Menorah from '@/components/dashboard/Menorah';
 
 export default function Home() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
     async function checkState() {
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      setUser(currentUser);
+
       const profile = await getProfile();
       if (profile) {
         router.push('/dashboard');
@@ -22,8 +26,7 @@ export default function Home() {
       }
       
       // If no profile, check if they are at least logged in
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
+      if (currentUser) {
         router.push('/onboarding');
       } else {
         setLoading(false);
@@ -43,6 +46,8 @@ export default function Home() {
       </div>
     );
   }
+
+  const displayName = user?.user_metadata?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || '';
 
   return (
     <main className="min-h-screen flex flex-col relative overflow-hidden">
@@ -135,14 +140,29 @@ export default function Home() {
           transition={{ delay: 0.6 }}
           className="w-full max-w-xs"
         >
-          <Link
-            href="/login"
-            className="btn-primary w-full flex items-center justify-center gap-3 text-lg rounded-2xl"
-          >
-            <Sparkles className="w-5 h-5" />
-            התחילו את המסע
-            <ArrowLeft className="w-5 h-5" />
-          </Link>
+          {loading ? (
+            <div className="btn-primary w-full flex items-center justify-center opacity-50 cursor-not-allowed">
+              <Loader2 className="w-5 h-5 animate-spin" />
+            </div>
+          ) : user ? (
+            <Link
+              href="/onboarding"
+              className="btn-primary w-full flex items-center justify-center gap-3 text-lg rounded-2xl"
+            >
+              <Sparkles className="w-5 h-5" />
+              המשך בתהליך, {displayName}
+              <ArrowLeft className="w-5 h-5" />
+            </Link>
+          ) : (
+            <Link
+              href="/login"
+              className="btn-primary w-full flex items-center justify-center gap-3 text-lg rounded-2xl"
+            >
+              <Sparkles className="w-5 h-5" />
+              התחילו את המסע
+              <ArrowLeft className="w-5 h-5" />
+            </Link>
+          )}
         </motion.div>
 
         {/* Features Preview */}
