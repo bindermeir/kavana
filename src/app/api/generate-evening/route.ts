@@ -7,11 +7,17 @@ export async function POST(req: NextRequest) {
     try {
         const { profile, journal } = await req.json();
 
+        // Check for Global Prompt Override
+        const { getSystemConfig } = require('@/lib/admin');
+        const promptOverride = await getSystemConfig('global_ai_prompt_override');
+
         const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-        const prompt = `
+        let prompt = `
             You are Kavana AI, a spiritual and psychological guide. 
             The user has just completed their evening harvest (אסיף).
+            
+            ${promptOverride ? `ADMIN OVERRIDE RULES (Highest Priority):\n${promptOverride}\n` : ''}
             
             USER PROFILE:
             Name: ${profile.name}

@@ -21,10 +21,17 @@ export interface DailyCalendarInfo {
         dateStr: string;
         events: CultureEvent[];
     };
-    // Future: islamic, christian, etc.
+    dynamic?: {
+        [cultureName: string]: {
+            dateStr: string;
+            events: CultureEvent[];
+        }
+    };
 }
 
-export function getDailyCalendarInfo(profile: UserProfile | null, date: Date = new Date()): DailyCalendarInfo {
+import { getDynamicCultures } from '../admin';
+
+export async function getDailyCalendarInfo(profile: UserProfile | null, date: Date = new Date()): Promise<DailyCalendarInfo> {
     const info: DailyCalendarInfo = {
         gregorian: {
             dateStr: date.toLocaleDateString('en-GB'), // default format
@@ -68,6 +75,33 @@ export function getDailyCalendarInfo(profile: UserProfile | null, date: Date = n
     if (profile?.language === 'he') {
         info.gregorian.dateStr = date.toLocaleDateString('he-IL');
         info.gregorian.dayName = date.toLocaleDateString('he-IL', { weekday: 'long' });
+    }
+
+    // Dynamic Cultures from Supabase
+    try {
+        const dynCultures = await getDynamicCultures();
+        
+        dynCultures.forEach(culture => {
+            // Check if user is subscribed or if it's their belief system
+            const isSubscribed = subs.includes(culture.id) || subs.includes(culture.name.toLowerCase());
+            const isBelief = belief.includes(culture.name.toLowerCase());
+            
+            if (isSubscribed || isBelief) {
+                if (!info.dynamic) info.dynamic = {};
+                
+                // Find events matching today's date (simplified: just matching MM-DD)
+                const todayStr = `${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
+                
+                const todaysEvents = (culture.events_json || []).filter((e: any) => e.date === todayStr);
+                
+                info.dynamic[culture.name] = {
+                    dateStr: '', // Dynamic cultures might just rely on gregorian date textually
+                    events: todaysEvents.map((e: any) => ({ name: e.name, type: e.type || 'holiday' }))
+                };
+            }
+        });
+    } catch (e) {
+        console.error('Failed to load dynamic cultures', e);
     }
 
     return info;

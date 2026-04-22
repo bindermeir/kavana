@@ -19,11 +19,21 @@ export async function POST(request: Request) {
         const recentPrayers = await getPrayers();
         const recentJournal = await getJournalEntries();
 
+        // Check for Global Prompt Override
+        const { getSystemConfig } = require('@/lib/admin');
+        const promptOverride = await getSystemConfig('global_ai_prompt_override');
+
         // 2. Initialize Gemini
         const genAI = new GoogleGenerativeAI(apiKey);
+        
+        let systemInstruction = buildSystemPrompt(profile);
+        if (promptOverride && promptOverride.trim().length > 0) {
+            systemInstruction += `\n\nADMIN OVERRIDE RULES (Highest Priority):\n${promptOverride}`;
+        }
+
         const model = genAI.getGenerativeModel({
             model: "gemini-1.5-flash",
-            systemInstruction: buildSystemPrompt(profile),
+            systemInstruction,
         });
 
         // 3. Build User Prompt with full history

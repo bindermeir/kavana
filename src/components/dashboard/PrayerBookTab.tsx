@@ -177,6 +177,40 @@ export default function PrayerBookTab() {
                                     <Heart className={`w-5 h-5 ${favorites.includes(selectedPrayer.id) ? 'fill-current' : ''}`} />
                                 </button>
                             </div>
+                            
+                            {/* Feedback Section */}
+                            <div className="mt-6 pt-6 border-t border-black/5 flex justify-center gap-4">
+                                <button 
+                                    onClick={async () => {
+                                        const { sendUserFeedback } = require('@/lib/admin');
+                                        await sendUserFeedback({
+                                            content_type: 'prayer',
+                                            prompt_text: 'Morning Kavana Generation',
+                                            generated_text: selectedPrayer.content,
+                                            feedback_score: 1
+                                        });
+                                        toast.success('תודה על המשוב!');
+                                    }}
+                                    className="p-3 rounded-xl bg-gray-50 hover:bg-green-50 hover:text-green-600 transition-colors"
+                                >
+                                    👍 מדויק
+                                </button>
+                                <button 
+                                    onClick={async () => {
+                                        const { sendUserFeedback } = require('@/lib/admin');
+                                        await sendUserFeedback({
+                                            content_type: 'prayer',
+                                            prompt_text: 'Morning Kavana Generation',
+                                            generated_text: selectedPrayer.content,
+                                            feedback_score: -1
+                                        });
+                                        toast.success('תודה! נלמד מזה לעתיד.');
+                                    }}
+                                    className="p-3 rounded-xl bg-gray-50 hover:bg-red-50 hover:text-red-600 transition-colors"
+                                >
+                                    👎 לא מדויק
+                                </button>
+                            </div>
                         </motion.div>
                     </div>
                 )}

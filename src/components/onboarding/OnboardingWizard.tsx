@@ -59,6 +59,14 @@ export default function OnboardingWizard() {
                 await sendAdminAlert('custom_culture', customCulture, finalProfile.id);
             }
 
+            // Send anonymous telemetry
+            const { sendTelemetry } = require('@/lib/admin');
+            await sendTelemetry('onboarding_complete', {
+                belief_system: finalProfile.belief_system,
+                current_state: finalProfile.current_state,
+                usage_mode: finalProfile.usage_mode
+            });
+
             await saveProfile(finalProfile);
             toast.success('הפרופיל המקודש נוצר בהצלחה / Profile created successfully');
             router.push('/dashboard');

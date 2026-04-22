@@ -13,7 +13,7 @@ export default function DateDisplay() {
   useEffect(() => {
     async function loadInfo() {
       const profile = await getProfile();
-      const info = getDailyCalendarInfo(profile, new Date());
+      const info = await getDailyCalendarInfo(profile, new Date());
       setCalInfo(info);
     }
     loadInfo();
@@ -65,6 +65,33 @@ export default function DateDisplay() {
           ))}
         </motion.div>
       )}
+
+      {/* Dynamic Cultures */}
+      {calInfo.dynamic && Object.entries(calInfo.dynamic).map(([cultureName, data]) => (
+        <motion.div
+          key={cultureName}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          className="pt-3 border-t border-accent-border/30 mt-2"
+        >
+          <p className="text-[10px] font-bold text-text-secondary uppercase tracking-[0.2em] mb-1">
+            {cultureName}
+          </p>
+          {data.events.length > 0 ? data.events.map((event, idx) => (
+            <motion.p 
+              key={idx}
+              initial={{ scale: 0.9 }}
+              animate={{ scale: 1 }}
+              className="text-xs mt-2 font-bold bg-primary/10 text-primary inline-block px-3 py-1 rounded-full mx-1"
+            >
+              🌟 {event.name}
+            </motion.p>
+          )) : (
+            <p className="text-xs text-text-secondary opacity-50">No special events today</p>
+          )}
+        </motion.div>
+      ))}
     </motion.div>
   );
 }

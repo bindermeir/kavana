@@ -16,13 +16,21 @@ export async function POST(req: NextRequest) {
             .order('timestamp', { ascending: false })
             .limit(20);
 
+        // Check for Global Prompt Override
+        const { getSystemConfig } = require('@/lib/admin');
+        const promptOverride = await getSystemConfig('global_ai_prompt_override');
+
         const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
         // 2. Build Prompt with Offloads included
-        const prompt = buildWeeklyPrompt(profile, {
+        let prompt = buildWeeklyPrompt(profile, {
             ...weekData,
             offloads: offloads || []
         });
+        
+        if (promptOverride && promptOverride.trim().length > 0) {
+            prompt += `\n\nADMIN OVERRIDE RULES (Highest Priority):\n${promptOverride}`;
+        }
 
         const result = await model.generateContent(prompt);
         const scrollContent = result.response.text();
