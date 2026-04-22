@@ -79,14 +79,21 @@ export interface WeeklyScroll {
 
 // PROFILE
 export async function getProfile(): Promise<UserProfile | null> {
-    const { data, error } = await supabase.from('user_profiles').select('*').single();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return null;
+
+    const { data, error } = await supabase.from('user_profiles').select('*').eq('id', user.id).single();
     if (error) return null;
     return data;
 }
 
 export async function saveProfile(profile: UserProfile): Promise<void> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
     const { error } = await supabase.from('user_profiles').upsert({
         ...profile,
+        id: user.id, // Enforce id matching auth.uid()
         updated_at: new Date().toISOString()
     });
     if (error) throw error;
@@ -100,7 +107,13 @@ export async function getPrayers(): Promise<PrayerEntry[]> {
 }
 
 export async function savePrayer(prayer: PrayerEntry): Promise<void> {
-    const { error } = await supabase.from('prayers').insert(prayer);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
+    const { error } = await supabase.from('prayers').insert({
+        ...prayer,
+        user_id: user.id
+    });
     if (error) throw error;
 }
 
@@ -112,7 +125,13 @@ export async function getJournalEntries(): Promise<JournalEntry[]> {
 }
 
 export async function saveJournalEntry(entry: JournalEntry): Promise<void> {
-    const { error } = await supabase.from('journal_entries').insert(entry);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
+    const { error } = await supabase.from('journal_entries').insert({
+        ...entry,
+        user_id: user.id
+    });
     if (error) throw error;
 }
 
@@ -124,13 +143,25 @@ export async function getTasks(): Promise<Task[]> {
 }
 
 export async function saveTask(task: Omit<Task, 'user_id'>): Promise<void> {
-    const { error } = await supabase.from('tasks').insert(task);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
+    const { error } = await supabase.from('tasks').insert({
+        ...task,
+        user_id: user.id
+    });
     if (error) throw error;
 }
 
 // OFFLOADS
 export async function saveOffload(offload: Omit<Offload, 'user_id'>): Promise<void> {
-    const { error } = await supabase.from('offloads').insert(offload);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
+    const { error } = await supabase.from('offloads').insert({
+        ...offload,
+        user_id: user.id
+    });
     if (error) throw error;
 }
 
@@ -142,6 +173,12 @@ export async function getWeeklyScrolls(): Promise<WeeklyScroll[]> {
 }
 
 export async function saveWeeklyScroll(scroll: Omit<WeeklyScroll, 'user_id'>): Promise<void> {
-    const { error } = await supabase.from('weekly_scrolls').insert(scroll);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
+    const { error } = await supabase.from('weekly_scrolls').insert({
+        ...scroll,
+        user_id: user.id
+    });
     if (error) throw error;
 }

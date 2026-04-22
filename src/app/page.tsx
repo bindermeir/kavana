@@ -127,7 +127,7 @@ export default function Home() {
           className="w-full max-w-xs"
         >
           <Link
-            href="/onboarding"
+            href="/login"
             className="btn-primary w-full flex items-center justify-center gap-3 text-lg rounded-2xl"
           >
             <Sparkles className="w-5 h-5" />

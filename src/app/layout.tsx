@@ -30,6 +30,7 @@ export const metadata: Metadata = {
 };
 
 import { LanguageProvider } from '@/lib/i18n/LanguageContext';
+import { AuthProvider } from '@/components/auth/AuthProvider';
 
 export default function RootLayout({
   children,
@@ -43,9 +44,11 @@ export default function RootLayout({
       </head>
       <body className={`${heebo.variable} antialiased`}>
         <LanguageProvider>
-          <ThemeProvider>
-            {children}
-          </ThemeProvider>
+          <AuthProvider>
+            <ThemeProvider>
+              {children}
+            </ThemeProvider>
+          </AuthProvider>
         </LanguageProvider>
         <Toaster position="top-center" />
         
