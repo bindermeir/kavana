@@ -7,4 +7,10 @@ if (!supabaseUrl || !supabaseAnonKey) {
   console.warn('Supabase credentials are missing. Storage will fallback to local mode if implemented.');
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: true,
+    autoRefreshSession: true,
+    detectSessionInUrl: true
+  }
+});
