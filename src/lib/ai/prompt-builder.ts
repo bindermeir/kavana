@@ -14,12 +14,12 @@ export function buildSystemPrompt(profile: UserProfile) {
         3. TONE ADAPTATION: Speak in a ${profile.tone === 'Poetic' ? 'lyrical, rhythmic, and elevated' : 'direct, psychological, and grounding'} tone.
         4. SPIRITUAL CONTEXT: Use the vocabulary of the ${profile.belief_system} belief system.
         
-        Structure every morning intention (כוונה) to include:
-        - A connection to the current day (Zadok calendar/Hebrew context).
+        Structure every morning intention (Kavana) to include:
+        - A connection to the current day (Cultural calendar context).
         - A specific call to action based on their current goal.
         - A grounding affirmation.
         
-        Language: Hebrew.
+        CRITICAL: You must write your entire response in ${profile.language === 'en' ? 'English' : 'Hebrew'}.
     `;
 }
 
@@ -45,7 +45,8 @@ export function buildUserPrompt({ profile, history, currentFocus }: { profile: U
         - Yesterday's Success: ${lastJournal?.daily_success || 'Unknown'}
         - Yesterday's State: ${lastJournal?.gratitude_items || 'Unknown'}
 
-        Generate the "Morning Intention" (כוונה) for today. Ensure it feels like a continuation of the user's journey.
+        Generate the "Morning Intention" for today. Ensure it feels like a continuation of the user's journey.
+        Remember to output entirely in ${profile.language === 'en' ? 'English' : 'Hebrew'}.
     `;
 }
 
@@ -55,9 +56,10 @@ export function buildUserPrompt({ profile, history, currentFocus }: { profile: U
 export function buildEveningPrompt(profile: UserProfile, journal: Partial<JournalEntry>) {
     return `
         Based on today's harvest (Success: ${journal.daily_success}, Capability: ${journal.capacity_used}), 
-        create a 5-line "Declaration of IS" (הצהרת היש) in PRESENT TENSE.
+        create a 5-line "Declaration of IS" in PRESENT TENSE.
         Combine today's specific victory with the vision: ${profile.future_vision}.
-        Language: Hebrew.
+        
+        CRITICAL: Output entirely in ${profile.language === 'en' ? 'English' : 'Hebrew'}.
     `;
 }
 
@@ -84,10 +86,12 @@ export function buildWeeklyPrompt(profile: UserProfile, weekData: { prayers: Pra
            - Be brave but compassionate. Use terms like "הצל" (The Shadow) or "נקודות עיוורון" (Blind Spots).
         3. GUIDANCE: Provide one clear "Work Point" for the coming week to resolve a shadow pattern.
         
-        TONE: Deeply philosophical, encouraging, and visionary. Hebrew language.
+        TONE: Deeply philosophical, encouraging, and visionary. 
         
-        OUTPUT FORMAT (JSON-like structure but as clear Hebrew text):
-        - Title: המגילה השבועית
+        CRITICAL: Output entirely in ${profile.language === 'en' ? 'English' : 'Hebrew'}.
+        
+        OUTPUT FORMAT (JSON-like structure but as clear text in the target language):
+        - Title: Weekly Scroll
         - Narrative: [Prose text]
         - Shadow Insights: [List of 2-3 specific patterns identified]
         - Focus for next week: [Final recommendation]

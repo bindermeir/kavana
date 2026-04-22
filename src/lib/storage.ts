@@ -25,6 +25,8 @@ export interface UserProfile {
     personal_abilities?: string[];
     inspiring_people?: string;
     usage_mode?: string;
+    language?: 'he' | 'en';
+    calendar_subscriptions?: string[];
 }
 
 export interface PrayerEntry {

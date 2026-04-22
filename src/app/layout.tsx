@@ -29,6 +29,8 @@ export const metadata: Metadata = {
   }
 };
 
+import { LanguageProvider } from '@/lib/i18n/LanguageContext';
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -40,9 +42,11 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
       </head>
       <body className={`${heebo.variable} antialiased`}>
-        <ThemeProvider>
-          {children}
-        </ThemeProvider>
+        <LanguageProvider>
+          <ThemeProvider>
+            {children}
+          </ThemeProvider>
+        </LanguageProvider>
         <Toaster position="top-center" />
         
         {/* Service Worker Registration */}

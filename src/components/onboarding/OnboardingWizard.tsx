@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { UserProfile, saveProfile } from '@/lib/storage';
 import { useRouter } from 'next/navigation';
+import { sendAdminAlert } from '@/lib/admin';
 import { ArrowLeft, ArrowRight, Check, Sparkles, Loader2, Heart, Star, Shield, Target, MessageSquare, Briefcase, Zap } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -14,7 +15,9 @@ const INITIAL_PROFILE: Partial<UserProfile> = {
     personal_abilities: [],
     onboarding_completed: false,
     tone: 'Adaptive',
-    addressing_mode: 'Direct'
+    addressing_mode: 'Direct',
+    language: 'he',
+    calendar_subscriptions: []
 };
 
 export default function OnboardingWizard() {
@@ -22,6 +25,8 @@ export default function OnboardingWizard() {
     const [step, setStep] = useState(0);
     const [isSaving, setIsSaving] = useState(false);
     const [formData, setFormData] = useState<Partial<UserProfile>>(INITIAL_PROFILE);
+    const [customBelief, setCustomBelief] = useState('');
+    const [customCulture, setCustomCulture] = useState('');
 
     const updateField = (field: keyof UserProfile, value: any) => {
         setFormData(prev => ({ ...prev, [field]: value }));
@@ -46,8 +51,16 @@ export default function OnboardingWizard() {
                 onboarding_completed: true,
             } as UserProfile;
 
+            // Send alerts if custom cultures were entered
+            if (formData.belief_system === 'אחר' && customBelief) {
+                await sendAdminAlert('custom_belief', customBelief, finalProfile.id);
+            }
+            if (formData.cultural_connections?.includes('אחר') && customCulture) {
+                await sendAdminAlert('custom_culture', customCulture, finalProfile.id);
+            }
+
             await saveProfile(finalProfile);
-            toast.success('הפרופיל המקודש נוצר בהצלחה');
+            toast.success('הפרופיל המקודש נוצר בהצלחה / Profile created successfully');
             router.push('/dashboard');
         } catch (e) {
             toast.error('אירעה שגיאה בשמירת הפרופיל');
@@ -59,10 +72,17 @@ export default function OnboardingWizard() {
 
     const steps = [
         // Step 1: Identity & Basics
-        <Step key="identity" title="שלב 1: בואו נכיר - שלב ראשון" subtitle="נתחיל בבסיס, כמה שאלות שיעזרו לנו להכיר אותך">
+        <Step key="identity" title="שלב 1: שפה והיכרות" subtitle="Language & Basics">
             <div className="space-y-8">
                 <div className="space-y-2">
-                    <label className="block text-xs font-bold text-text-secondary uppercase tracking-widest">איך נקרא לך?</label>
+                    <label className="block text-xs font-bold text-text-secondary uppercase tracking-widest">Language / שפה</label>
+                    <div className="flex gap-3">
+                        <SelectButton selected={formData.language === 'he'} onClick={() => updateField('language', 'he')} className="flex-1">עברית</SelectButton>
+                        <SelectButton selected={formData.language === 'en'} onClick={() => updateField('language', 'en')} className="flex-1">English</SelectButton>
+                    </div>
+                </div>
+                <div className="space-y-2">
+                    <label className="block text-xs font-bold text-text-secondary uppercase tracking-widest">איך נקרא לך? / Name</label>
                     <input
                         type="text"
                         className="input w-full text-2xl font-bold"
@@ -72,9 +92,9 @@ export default function OnboardingWizard() {
                     />
                 </div>
                 <div className="space-y-4">
-                    <label className="block text-xs font-bold text-text-secondary uppercase tracking-widest">מערכת אמונות</label>
+                    <label className="block text-xs font-bold text-text-secondary uppercase tracking-widest">מערכת אמונות / Belief System</label>
                     <div className="grid grid-cols-2 gap-3">
-                        {['חילוני', 'מסורתי', 'דתי', 'רוחני', 'ניו אייג\'', 'אחר'].map(tag => (
+                        {['חילוני', 'מסורתי', 'דתי', 'רוחני', 'נוצרי', 'מוסלמי', 'אחר'].map(tag => (
                             <SelectButton
                                 key={tag}
                                 selected={formData.belief_system === tag}
@@ -84,6 +104,9 @@ export default function OnboardingWizard() {
                             </SelectButton>
                         ))}
                     </div>
+                    {formData.belief_system === 'אחר' && (
+                        <input type="text" className="input w-full" placeholder="פרט כאן / Detail here..." value={customBelief} onChange={e => setCustomBelief(e.target.value)} />
+                    )}
                 </div>
             </div>
         </Step>,
@@ -159,17 +182,34 @@ export default function OnboardingWizard() {
         </Step>,
 
         // Step 6: Tradition & Philosophy
-        <Step key="tradition" title="שלב 6: חיבור למסורת ופילוסופיה" subtitle="לאילו עולמות תרבותיים אתה מרגיש חיבור?">
-            <div className="grid grid-cols-2 gap-3">
-                {['יהדות', 'קבלה', 'תנ"ך', 'בודהיזם', 'סטואה', 'פסיכולוגיה', 'מדע', 'אחר'].map(t => (
-                    <SelectButton
-                        key={t}
-                        selected={formData.cultural_connections?.includes(t)}
-                        onClick={() => toggleArrayItem('cultural_connections', t)}
-                    >
-                        {t}
-                    </SelectButton>
-                ))}
+        <Step key="tradition" title="שלב 6: מסורת ותרבות" subtitle="לאילו עולמות תרבותיים אתה מרגיש חיבור?">
+            <div className="space-y-6">
+                <div className="grid grid-cols-2 gap-3">
+                    {['יהדות', 'קבלה', 'תנ"ך', 'בודהיזם', 'נצרות', 'אסלאם', 'פסיכולוגיה', 'אחר'].map(t => (
+                        <SelectButton
+                            key={t}
+                            selected={formData.cultural_connections?.includes(t)}
+                            onClick={() => toggleArrayItem('cultural_connections', t)}
+                        >
+                            {t}
+                        </SelectButton>
+                    ))}
+                </div>
+                {formData.cultural_connections?.includes('אחר') && (
+                    <input type="text" className="input w-full" placeholder="תרבות אחרת / Other culture..." value={customCulture} onChange={e => setCustomCulture(e.target.value)} />
+                )}
+                
+                <div className="pt-4 border-t border-black/5 space-y-4">
+                    <label className="block text-xs font-bold text-text-secondary uppercase tracking-widest">לוחות שנה להצגה (אופציונלי / Opt-in Calendars)</label>
+                    <div className="grid grid-cols-2 gap-3">
+                        <SelectButton selected={formData.calendar_subscriptions?.includes('zadok')} onClick={() => toggleArrayItem('calendar_subscriptions', 'zadok')}>
+                            לוח בני צדוק (Zadok)
+                        </SelectButton>
+                        <SelectButton selected={formData.calendar_subscriptions?.includes('hebrew')} onClick={() => toggleArrayItem('calendar_subscriptions', 'hebrew')}>
+                            לוח עברי (Hebrew)
+                        </SelectButton>
+                    </div>
+                </div>
             </div>
         </Step>,
 
