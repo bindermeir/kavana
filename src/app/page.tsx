@@ -6,6 +6,7 @@ import { getProfile } from '@/lib/storage';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Sparkles, ArrowLeft, Heart, Sun, Moon } from 'lucide-react';
+import Menorah from '@/components/dashboard/Menorah';
 
 export default function Home() {
   const router = useRouter();
@@ -83,8 +84,8 @@ export default function Home() {
           transition={{ type: "spring", duration: 0.8 }}
           className="mb-8"
         >
-          <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center shadow-lg shadow-primary/30 animate-pulse-glow">
-            <span className="text-5xl">🕯️</span>
+          <div className="w-24 h-24 flex items-center justify-center">
+            <Menorah activeDay={new Date().getDay()} className="w-full h-full" />
           </div>
         </motion.div>
 

@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Mail, Lock, Loader2, AlertCircle, Sparkles } from 'lucide-react';
 import { useAuth } from './AuthProvider';
+import Menorah from '@/components/dashboard/Menorah';
 
 interface AuthFormProps {
     onSuccess?: () => void;
@@ -64,9 +65,9 @@ export default function AuthForm({ onSuccess }: AuthFormProps) {
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
                     transition={{ type: "spring", duration: 0.5 }}
-                    className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center shadow-lg shadow-primary/30"
+                    className="w-20 h-20 mx-auto mb-4 flex items-center justify-center"
                 >
-                    <span className="text-4xl">🕯️</span>
+                    <Menorah activeDay={new Date().getDay()} className="w-full h-full" />
                 </motion.div>
                 <h1 className="text-3xl font-bold gradient-text">כוונה</h1>
                 <p className="text-text-secondary text-sm mt-2">
