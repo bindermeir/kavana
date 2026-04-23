@@ -5,8 +5,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { UserProfile, saveProfile } from '@/lib/storage';
 import { useRouter } from 'next/navigation';
 import { sendAdminAlert } from '@/lib/admin';
-import { ArrowLeft, ArrowRight, Check, Sparkles, Loader2, Heart, Star, Shield, Target, MessageSquare, Briefcase, Zap } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Sparkles, Loader2, Heart, Star, Shield, Target, MessageSquare, Briefcase, Zap, LogOut, User } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAuth } from '@/components/auth/AuthProvider';
+import { supabase } from '@/lib/supabase';
 
 const INITIAL_PROFILE: Partial<UserProfile> = {
     core_values: [],
@@ -22,11 +24,19 @@ const INITIAL_PROFILE: Partial<UserProfile> = {
 
 export default function OnboardingWizard() {
     const router = useRouter();
+    const { user } = useAuth();
     const [step, setStep] = useState(0);
     const [isSaving, setIsSaving] = useState(false);
     const [formData, setFormData] = useState<Partial<UserProfile>>(INITIAL_PROFILE);
     const [customBelief, setCustomBelief] = useState('');
     const [customCulture, setCustomCulture] = useState('');
+
+    const displayName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || '';
+
+    const handleLogout = async () => {
+        await supabase.auth.signOut();
+        window.location.href = '/';
+    };
 
     const updateField = (field: keyof UserProfile, value: any) => {
         setFormData(prev => ({ ...prev, [field]: value }));
@@ -304,7 +314,37 @@ export default function OnboardingWizard() {
 
     return (
         <div className="min-h-screen flex flex-col bg-[#E8E2D2]">
-            <header className="px-6 pt-12 pb-6">
+            <header className="px-6 pt-8 pb-6">
+                {/* User Bar */}
+                <div className="flex items-center justify-between mb-6 max-w-lg mx-auto">
+                    <div className="flex items-center gap-3">
+                        {user?.user_metadata?.avatar_url ? (
+                            <img 
+                                src={user.user_metadata.avatar_url} 
+                                alt="Profile" 
+                                className="w-9 h-9 rounded-full border-2 border-accent-active/20"
+                            />
+                        ) : (
+                            <div className="w-9 h-9 rounded-full bg-accent-active/10 flex items-center justify-center">
+                                <User className="w-5 h-5 text-accent-active" />
+                            </div>
+                        )}
+                        <div>
+                            <p className="text-xs text-text-secondary">שלום,</p>
+                            <p className="text-sm font-bold text-text-primary">{displayName}</p>
+                        </div>
+                    </div>
+                    
+                    <button 
+                        onClick={handleLogout}
+                        className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-black/5 text-text-secondary transition-colors text-sm"
+                        title="התנתק"
+                    >
+                        <span className="hidden sm:inline">התנתק</span>
+                        <LogOut className="w-4 h-4" />
+                    </button>
+                </div>
+
                 <div className="flex items-center justify-between mb-8 max-w-lg mx-auto">
                     <button onClick={prevStep} disabled={step === 0} className="p-2 rounded-xl disabled:opacity-0 text-text-secondary">
                         <ArrowRight className="w-6 h-6" />
