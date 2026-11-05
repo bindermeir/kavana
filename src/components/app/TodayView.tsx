@@ -40,7 +40,7 @@ export default function TodayView() {
 
     return (
         <div className="space-y-8">
-            <div className="grid grid-cols-3 gap-1 p-1 rounded-2xl bg-card/70 border border-accent-border/15" role="tablist" aria-label="רגעי היום">
+            <div className="flex justify-center gap-8" role="tablist" aria-label="רגעי היום">
                 {MOMENTS.map((m) => {
                     const active = m.id === moment;
                     return (
@@ -49,12 +49,12 @@ export default function TodayView() {
                             role="tab"
                             aria-selected={active}
                             onClick={() => setMoment(m.id)}
-                            className={`relative rounded-xl py-2.5 transition-all ${active ? 'bg-app-bg shadow-sm text-text-primary' : 'text-text-muted'}`}
+                            title={m.hint}
+                            className={`relative pb-1.5 font-serif text-xl transition-colors border-b-2 ${active ? 'text-text-primary font-bold border-flame' : 'text-text-muted border-transparent hover:text-text-secondary'}`}
                         >
-                            <span className="block font-serif text-lg font-bold leading-tight">{m.label}</span>
-                            <span className="block text-[11px]">{m.hint}</span>
+                            {m.label}
                             {done[m.id] && (
-                                <Check className="absolute top-1.5 left-2 w-3.5 h-3.5 text-flame" aria-label="נעשה היום" strokeWidth={3} />
+                                <Check className="absolute -top-1 -left-3.5 w-3 h-3 text-flame" aria-label="נעשה היום" strokeWidth={3} />
                             )}
                         </button>
                     );

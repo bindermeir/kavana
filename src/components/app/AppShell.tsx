@@ -137,9 +137,9 @@ export default function AppShell() {
 
                 <OffloadButton />
 
-                <nav className="fixed bottom-0 inset-x-0 z-30 pointer-events-none">
-                    <div className="max-w-lg mx-auto px-4 safe-bottom pointer-events-auto">
-                        <div className="grid grid-cols-4 rounded-2xl bg-card/95 backdrop-blur border border-accent-border/20 shadow-lg">
+                <nav className="fixed bottom-0 inset-x-0 z-30 bg-app-bg/95 backdrop-blur border-t border-accent-border/40">
+                    <div className="max-w-lg mx-auto px-4 safe-bottom">
+                        <div className="grid grid-cols-4">
                             {TABS.map(({ id, label, icon: Icon }) => {
                                 const active = tab === id;
                                 return (
@@ -149,7 +149,7 @@ export default function AppShell() {
                                             setTab(id);
                                             if (id === 'book') setBookDate(null);
                                         }}
-                                        className={`flex flex-col items-center gap-1 py-3 transition-colors ${active ? 'text-accent-active' : 'text-text-muted hover:text-text-secondary'}`}
+                                        className={`flex flex-col items-center gap-1 pt-3 pb-2 transition-colors ${active ? 'text-text-primary' : 'text-text-muted hover:text-text-secondary'}`}
                                         aria-current={active ? 'page' : undefined}
                                     >
                                         <Icon className="w-5 h-5" strokeWidth={active ? 2.4 : 1.8} />

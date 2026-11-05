@@ -79,9 +79,10 @@ export default function Arvit() {
         return (
             <div className="space-y-5">
                 <MomentHeader title="הצהרת היש" subtitle="מה שכבר קיים, מתוך מה שהיה היום" />
-                <article className="sacred-card space-y-6">
+                <article className="sacred-card space-y-5 text-center">
+                    <p className="font-serif text-sm text-accent-active">הצהרת היש</p>
                     {entry.declaration ? <SacredText text={entry.declaration} /> : <p className="text-text-secondary">האסיף נשמר.</p>}
-                    <dl className="border-t border-accent-border/25 pt-5 grid gap-3 text-sm">
+                    <dl className="border-t border-accent-border/50 pt-5 grid grid-cols-3 gap-3 text-sm">
                         {STEPS.map((s) => (
                             <div key={s.field}>
                                 <dt className="label">{s.title}</dt>

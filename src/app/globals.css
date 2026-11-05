@@ -8,34 +8,38 @@
    Night: the same room by candlelight.
    ------------------------------------------------------------ */
 :root {
-  --app-bg: #E8E2D2;
-  --card-bg: #F2EDE0;
-  --text-primary: #5C403C;
-  --text-secondary: #7A7865;
-  --text-muted: #9A9484;
-  --accent-active: #4F6D70;
-  --accent-contrast: #F7F3EA;
-  --accent-border: #7A7865;
-  --flame: #D4A574;
-  --flame-bright: #F2B866;
-  --flame-core: #FFF3D6;
-  --metal: #5C403C;
-  --shadow: 0 4px 20px rgba(92, 64, 60, 0.12);
-  --shadow-strong: 0 6px 30px rgba(92, 64, 60, 0.22);
-  --texture: rgba(92, 64, 60, 0.03);
+  /* היכל: parchment, ink-brown and gold */
+  --app-bg: #EFE8D8;
+  --card-bg: #F7F2E6;
+  --text-primary: #3F2C22;
+  --text-secondary: #6A5648;
+  --text-muted: #7D6B5E;
+  --accent-active: #8A6A2E;
+  --accent-contrast: #F7F2E6;
+  --button-bg: #5A3F2F;
+  --accent-border: #B79F7C;
+  --flame: #B8893B;
+  --flame-bright: #E8B45E;
+  --flame-core: #FFF4DA;
+  --metal: #5A3F2F;
+  --shadow: 0 4px 20px rgba(63, 44, 34, 0.10);
+  --shadow-strong: 0 6px 30px rgba(63, 44, 34, 0.2);
+  --texture: rgba(63, 44, 34, 0.025);
   color-scheme: light;
 }
 
 .dark {
-  --app-bg: #2A2520;
-  --card-bg: #3A342D;
-  --text-primary: #EDE6D6;
-  --text-secondary: #B5AC9C;
-  --text-muted: #8F8678;
-  --accent-active: #7FA7AB;
-  --accent-contrast: #1F1B17;
-  --accent-border: #8A8170;
-  --metal: #CFC6B4;
+  --app-bg: #2B231D;
+  --card-bg: #362C24;
+  --text-primary: #EDE3CF;
+  --text-secondary: #B3A48D;
+  --text-muted: #9A8C78;
+  --accent-active: #D9A954;
+  --accent-contrast: #2B231D;
+  --button-bg: #D9A954;
+  --accent-border: #6E5B47;
+  --flame-bright: #F0BE68;
+  --metal: #CDB998;
   --shadow: 0 4px 20px rgba(0, 0, 0, 0.45);
   --shadow-strong: 0 6px 30px rgba(0, 0, 0, 0.6);
   --texture: rgba(255, 240, 210, 0.02);
@@ -114,9 +118,9 @@
   .sacred-card {
     background-color: var(--card-bg);
     border: 3px double var(--accent-border);
-    border-radius: 18px;
-    padding: 24px;
-    box-shadow: inset 0 2px 8px rgba(92, 64, 60, 0.06), var(--shadow);
+    border-radius: 6px;
+    padding: 26px;
+    box-shadow: var(--shadow);
     position: relative;
   }
 
@@ -139,10 +143,10 @@
   }
 
   .btn-primary {
-    background-color: var(--accent-active);
+    background-color: var(--button-bg);
     color: var(--accent-contrast);
     padding: 14px 24px;
-    border-radius: 14px;
+    border-radius: 8px;
     font-weight: 700;
     box-shadow: var(--shadow);
     transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s;

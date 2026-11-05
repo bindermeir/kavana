@@ -19,9 +19,9 @@ const W = 1080;
 const H = 1920;
 
 const PALETTE: Record<StoryVariant, { bg: string; fg: string; soft: string; line: string; metal: string; cup: string }> = {
-    day: { bg: '#E8E2D2', fg: '#5C403C', soft: '#7A7865', line: '#7A7865', metal: '#5C403C', cup: '#5C403C' },
-    night: { bg: '#2A2520', fg: '#EDE6D6', soft: '#B5AC9C', line: '#8A8170', metal: '#CFC6B4', cup: '#4A4038' },
-    shabbat: { bg: '#F2EDE0', fg: '#5C403C', soft: '#7A7865', line: '#A08A5C', metal: '#5C403C', cup: '#5C403C' },
+    day: { bg: '#EFE8D8', fg: '#3F2C22', soft: '#6A5648', line: '#B79F7C', metal: '#5A3F2F', cup: '#5A3F2F' },
+    night: { bg: '#2B231D', fg: '#EDE3CF', soft: '#B3A48D', line: '#6E5B47', metal: '#CDB998', cup: '#4A3C30' },
+    shabbat: { bg: '#F7F2E6', fg: '#3F2C22', soft: '#6A5648', line: '#B8893B', metal: '#5A3F2F', cup: '#5A3F2F' },
 };
 
 function fontFamily(varName: string, fallback: string): string {

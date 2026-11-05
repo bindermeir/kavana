@@ -90,10 +90,11 @@ export default function Shacharit() {
         <div className="space-y-5">
             <MomentHeader title={`בוקר טוב, ${(profile.name || '').split(' ')[0]}`} subtitle="הכוונה שלך להיום" />
 
-            <article className="sacred-card space-y-6">
+            <article className="sacred-card space-y-5 text-center">
+                <p className="font-serif text-sm text-accent-active">כוונה לבוקר</p>
                 <SacredText text={prayer.content} />
                 {prayer.action_line && (
-                    <div className="border-t border-accent-border/25 pt-5 space-y-1">
+                    <div className="border-t border-accent-border/50 pt-5 space-y-1">
                         <p className="label">המשפט ליום</p>
                         <p className="text-lg font-medium text-accent-active leading-relaxed">{prayer.action_line}</p>
                     </div>
