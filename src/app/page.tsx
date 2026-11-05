@@ -1,206 +1,71 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useSyncExternalStore } from 'react';
+
+const noopSubscribe = () => () => {};
 import Link from 'next/link';
-import { getProfile } from '@/lib/storage';
-import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Sparkles, ArrowLeft, Heart, Sun, Moon, Loader2 } from 'lucide-react';
-import Menorah from '@/components/dashboard/Menorah';
+import { ArrowLeft } from 'lucide-react';
+import { useAuth } from '@/components/auth/AuthProvider';
+import Menorah from '@/components/menorah/Menorah';
+import { dayIndex, localDateStr } from '@/lib/dates';
+
+const MOMENTS = [
+    { name: 'שחרית', text: 'דקה בבוקר לכוון את היום אל הכוכב שלך' },
+    { name: 'מנחה', text: 'עצירה קטנה באמצע הרעש, וחזרה' },
+    { name: 'ערבית', text: 'לאסוף את הטוב של היום ולהצהיר על מה שיש' },
+];
 
 export default function Home() {
-  const router = useRouter();
-  const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<any>(null);
+    const router = useRouter();
+    const { user, loading } = useAuth();
+    // The day comes from the visitor's own clock, so it is read only in the browser.
+    const today = useSyncExternalStore(noopSubscribe, () => dayIndex(localDateStr()), () => -1);
+    useEffect(() => {
+        if (!loading && user) router.replace('/dashboard');
+    }, [user, loading, router]);
 
-  useEffect(() => {
-    async function checkState() {
-      const { data: { user: currentUser } } = await supabase.auth.getUser();
-      setUser(currentUser);
-
-      const profile = await getProfile();
-      if (profile) {
-        router.push('/dashboard');
-        return;
-      }
-      
-      // If no profile, check if they are at least logged in
-      if (currentUser) {
-        router.push('/onboarding');
-      } else {
-        setLoading(false);
-      }
-    }
-    checkState();
-  }, [router]);
-
-  if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-          className="w-12 h-12 rounded-full border-4 border-primary border-t-transparent"
-        />
-      </div>
-    );
-  }
+        <main className="min-h-dvh flex flex-col items-center px-6 py-12 max-w-md mx-auto">
+            <div className="flex-1 flex flex-col items-center justify-center gap-10 w-full">
+                <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.8 }}>
+                    <Menorah litThrough={today} levels={Array(7).fill(1)} className="w-48" />
+                </motion.div>
 
-  const displayName = user?.user_metadata?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || '';
+                <div className="text-center space-y-3">
+                    <h1 className="text-6xl font-bold">כוונה</h1>
+                    <p className="text-xl text-text-secondary">התכווננות יומית, במינימום זמן</p>
+                </div>
 
-  return (
-    <main className="min-h-screen flex flex-col relative overflow-hidden">
-      {/* Background Decorations */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        {/* Gradient Orbs */}
-        <motion.div
-          animate={{
-            scale: [1, 1.2, 1],
-            opacity: [0.3, 0.5, 0.3]
-          }}
-          transition={{ duration: 8, repeat: Infinity }}
-          className="absolute -top-32 -right-32 w-80 h-80 rounded-full bg-gradient-to-br from-primary/30 to-purple-500/20 blur-3xl"
-        />
-        <motion.div
-          animate={{
-            scale: [1.2, 1, 1.2],
-            opacity: [0.2, 0.4, 0.2]
-          }}
-          transition={{ duration: 10, repeat: Infinity }}
-          className="absolute -bottom-40 -left-40 w-96 h-96 rounded-full bg-gradient-to-tr from-accent/20 to-primary/10 blur-3xl"
-        />
+                <ol className="w-full space-y-4">
+                    {MOMENTS.map((m, i) => (
+                        <motion.li
+                            key={m.name}
+                            initial={{ opacity: 0, y: 8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.3 + i * 0.15 }}
+                            className="flex items-baseline gap-4"
+                        >
+                            <span className="font-serif text-xl font-bold w-16 shrink-0">{m.name}</span>
+                            <span className="text-text-secondary leading-relaxed">{m.text}</span>
+                        </motion.li>
+                    ))}
+                </ol>
 
-        {/* Floating Icons */}
-        <motion.div
-          animate={{ y: [-10, 10, -10] }}
-          transition={{ duration: 4, repeat: Infinity }}
-          className="absolute top-1/4 right-8 text-primary/20"
-        >
-          <Sun className="w-16 h-16" />
-        </motion.div>
-        <motion.div
-          animate={{ y: [10, -10, 10] }}
-          transition={{ duration: 5, repeat: Infinity }}
-          className="absolute bottom-1/3 left-8 text-accent/20"
-        >
-          <Moon className="w-12 h-12" />
-        </motion.div>
-      </div>
+                <p className="text-center text-text-secondary leading-relaxed">
+                    שלושה רגעים ביום, שבעה נרות בשבוע.
+                    <br />
+                    בכל יום נדלק נר, ובשבת המנורה שלמה.
+                </p>
 
-      {/* Content */}
-      <div className="flex-1 flex flex-col justify-center items-center px-6 py-12 relative z-10">
-        {/* Logo / Icon */}
-        <motion.div
-          initial={{ scale: 0, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ type: "spring", duration: 0.8 }}
-          className="mb-8"
-        >
-          <div className="w-24 h-24 flex items-center justify-center">
-            <Menorah activeDay={new Date().getDay()} className="w-full h-full" />
-          </div>
-        </motion.div>
-
-        {/* Title */}
-        <motion.div
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.2 }}
-          className="text-center mb-8"
-        >
-          <h1 className="text-5xl font-bold mb-3 gradient-text">
-            כוונה
-          </h1>
-          <p className="text-xl text-text-secondary">
-            תפילה אישית
-          </p>
-        </motion.div>
-
-        {/* Description Card */}
-        <motion.div
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.4 }}
-          className="card-elevated p-6 max-w-sm text-center mb-10"
-        >
-          <p className="text-lg leading-relaxed text-text-primary">
-            התחברו ללב, למילים ולכוונה שלכם.
-            <br />
-            <span className="text-text-secondary">
-              צרו תפילה המותאמת בדיוק עבורכם, בכל רגע ובכל מצב.
-            </span>
-          </p>
-        </motion.div>
-
-        {/* CTA Button */}
-        <motion.div
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.6 }}
-          className="w-full max-w-xs"
-        >
-          {loading ? (
-            <div className="btn-primary w-full flex items-center justify-center opacity-50 cursor-not-allowed">
-              <Loader2 className="w-5 h-5 animate-spin" />
+                <Link href="/login" className="btn-primary w-full text-lg flex items-center justify-center gap-2">
+                    להדליק את הנר הראשון
+                    <ArrowLeft className="w-5 h-5" />
+                </Link>
             </div>
-          ) : user ? (
-            <Link
-              href="/onboarding"
-              className="btn-primary w-full flex items-center justify-center gap-3 text-lg rounded-2xl"
-            >
-              <Sparkles className="w-5 h-5" />
-              המשך בתהליך, {displayName}
-              <ArrowLeft className="w-5 h-5" />
-            </Link>
-          ) : (
-            <Link
-              href="/login"
-              className="btn-primary w-full flex items-center justify-center gap-3 text-lg rounded-2xl"
-            >
-              <Sparkles className="w-5 h-5" />
-              התחילו את המסע
-              <ArrowLeft className="w-5 h-5" />
-            </Link>
-          )}
-        </motion.div>
 
-        {/* Features Preview */}
-        <motion.div
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.8 }}
-          className="flex gap-6 mt-10"
-        >
-          {[
-            { icon: '🌅', label: 'תפילת בוקר' },
-            { icon: '🌙', label: 'כוונת ערב' },
-            { icon: '✨', label: 'AI אישי' },
-          ].map((item, i) => (
-            <motion.div
-              key={i}
-              whileHover={{ scale: 1.05 }}
-              className="flex flex-col items-center gap-2"
-            >
-              <div className="w-14 h-14 rounded-2xl glass flex items-center justify-center text-2xl">
-                {item.icon}
-              </div>
-              <span className="text-xs text-text-muted font-medium">{item.label}</span>
-            </motion.div>
-          ))}
-        </motion.div>
-      </div>
-
-      {/* Footer */}
-      <motion.footer
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1 }}
-        className="text-center py-6 text-text-muted text-sm flex items-center justify-center gap-2"
-      >
-        <span>נבנה באהבה</span>
-        <Heart className="w-4 h-4 text-rose-400 fill-rose-400" />
-      </motion.footer>
-    </main>
-  );
+            <Link href="/about" className="text-sm text-text-muted pt-10">על כוונה</Link>
+        </main>
+    );
 }

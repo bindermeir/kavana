@@ -1,60 +1,51 @@
-import type { Metadata } from "next";
-import { Heebo } from "next/font/google";
-import "./globals.css";
+import type { Metadata, Viewport } from 'next';
+import { Heebo, Frank_Ruhl_Libre } from 'next/font/google';
+import './globals.css';
 import { Toaster } from 'sonner';
 import { ThemeProvider } from '@/components/ThemeProvider';
-import Script from 'next/script';
+import { AuthProvider } from '@/components/auth/AuthProvider';
 
-const heebo = Heebo({
-  subsets: ["hebrew", "latin"],
-  variable: "--font-heebo",
+const heebo = Heebo({ subsets: ['hebrew', 'latin'], variable: '--font-heebo', display: 'swap' });
+const frank = Frank_Ruhl_Libre({
+    subsets: ['hebrew', 'latin'],
+    weight: ['400', '500', '700'],
+    variable: '--font-frank',
+    display: 'swap',
 });
 
 export const metadata: Metadata = {
-  title: "Kavana AI - כוונה אישית",
-  description: "הנחיה רוחנית ופסיכולוגית מבוססת AI",
-  manifest: "/manifest.json",
-  themeColor: "#5C403C",
-  viewport: {
-    width: "device-width",
-    initialScale: 1,
-    maximumScale: 1,
-    userScalable: false,
-    viewportFit: "cover"
-  },
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "black-translucent",
-    title: "Kavana"
-  }
+    title: 'כוונה: התכווננות יומית',
+    description: 'שלושה רגעים ביום, שבעה נרות בשבוע. התכווננות אישית במינימום זמן.',
+    manifest: '/manifest.json',
+    appleWebApp: { capable: true, statusBarStyle: 'black-translucent', title: 'כוונה' },
+    icons: { apple: '/icons/icon-192x192.png' },
 };
 
-import { LanguageProvider } from '@/lib/i18n/LanguageContext';
-import { AuthProvider } from '@/components/auth/AuthProvider';
+export const viewport: Viewport = {
+    width: 'device-width',
+    initialScale: 1,
+    viewportFit: 'cover',
+    themeColor: [
+        { media: '(prefers-color-scheme: light)', color: '#EFE8D8' },
+        { media: '(prefers-color-scheme: dark)', color: '#2B231D' },
+    ],
+};
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
-  return (
-    <html lang="he" dir="rtl">
-      <head>
-        <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
-      </head>
-      <body className={`${heebo.variable} antialiased`}>
-        <LanguageProvider>
-          <AuthProvider>
-            <ThemeProvider>
-              {children}
-            </ThemeProvider>
-          </AuthProvider>
-        </LanguageProvider>
-        <Toaster position="top-center" />
-        
-        {/* Service Worker Registration */}
+// Applies night mode before first paint, so the evening never flashes bright.
+const themeBootstrap = `try{var m=localStorage.getItem('kavana_theme_mode')||'auto',h=new Date().getHours();if(m==='dark'||(m==='auto'&&(h>=18||h<6)))document.documentElement.classList.add('dark')}catch(e){}`;
 
-      </body>
-    </html>
-  );
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+    return (
+        <html lang="he" dir="rtl" suppressHydrationWarning className={`${heebo.variable} ${frank.variable}`}>
+            <head>
+                <script dangerouslySetInnerHTML={{ __html: themeBootstrap }} />
+            </head>
+            <body className="antialiased">
+                <AuthProvider>
+                    <ThemeProvider>{children}</ThemeProvider>
+                </AuthProvider>
+                <Toaster position="top-center" dir="rtl" />
+            </body>
+        </html>
+    );
 }

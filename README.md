@@ -1,36 +1,39 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# כוונה (Kavana)
 
-## Getting Started
+התכווננות יומית במינימום זמן. שלושה רגעים ביום (שחרית, מנחה, ערבית), שבעה נרות בשבוע, ומגילה כשהמנורה שלמה.
 
-First, run the development server:
+- **הפילוסופיה:** [`PHILOSOPHY.md`](PHILOSOPHY.md)
+- **השיטות והמחקר:** [`docs/METHODS.md`](docs/METHODS.md)
+- **תוכנית העבודה:** [`docs/PLAN.md`](docs/PLAN.md)
+
+## הרצה מקומית
 
 ```bash
+npm install
+cp .env.example .env.local   # ולמלא את הערכים
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## הקמת מסד הנתונים
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+ב-Supabase: SQL Editor ← להדביק את [`supabase/schema.sql`](supabase/schema.sql) ← Run.
+לכל טבלה יש Row Level Security: כל משתמש רואה רק את השורות שלו.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+לכניסה עם Google: Authentication ← Providers ← Google, ולהוסיף את `https://<הדומיין>/auth/callback` ל-Redirect URLs.
 
-## Learn More
+## מבנה
 
-To learn more about Next.js, take a look at the following resources:
+| תיקייה | מה יש בה |
+|---|---|
+| `src/app/api/*` | נתיבי השרת: `kavana` (שחרית), `asif` (ערבית), `offload`, `scroll` (המגילה), `admin` |
+| `src/lib/ai/` | החיבור ל-Gemini, הפרומפטים והקשר לוח השנה |
+| `src/components/app/` | מעטפת האפליקציה: היום, הספר, יש בי, אני |
+| `src/components/moments/` | שלושת הרגעים |
+| `src/components/menorah/` | המנורה ו"סוד המנורה" |
+| `src/lib/share/` | יצירת כרטיס הסטורי |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## אבטחה
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- כל נתיב API מאמת את ה-token של המשתמש ופועל בשמו, דרך RLS.
+- האדמין נקבע לפי `ADMIN_EMAILS` בשרת. אין סיסמה בקוד.
+- `SUPABASE_SERVICE_ROLE_KEY` משמש רק בשרת, רק אחרי בדיקת אדמין.

@@ -1,21 +1,16 @@
 {
-  "name": "Kavana AI",
-  "short_name": "Kavana",
-  "description": "הנחיה רוחנית ופסיכולוגית מבוססת AI",
+  "name": "כוונה: התכווננות יומית",
+  "short_name": "כוונה",
+  "description": "שלושה רגעים ביום, שבעה נרות בשבוע. התכווננות אישית במינימום זמן.",
+  "lang": "he",
+  "dir": "rtl",
   "start_url": "/dashboard",
   "display": "standalone",
-  "background_color": "#E8E2D2",
-  "theme_color": "#5C403C",
+  "background_color": "#EFE8D8",
+  "theme_color": "#EFE8D8",
   "icons": [
-    {
-      "src": "/icons/icon-192x192.png",
-      "sizes": "192x192",
-      "type": "image/png"
-    },
-    {
-      "src": "/icons/icon-512x512.png",
-      "sizes": "512x512",
-      "type": "image/png"
-    }
+    { "src": "/icons/icon-192x192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icons/icon-512x512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icons/icon-maskable-512x512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ]
 }

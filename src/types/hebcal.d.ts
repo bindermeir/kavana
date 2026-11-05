@@ -8,7 +8,7 @@ declare module 'hebcal' {
 
     }
     export class HebrewCalendar {
-        static getHolidaysOnDate(date: HDate): any[];
+        static getHolidaysOnDate(date: HDate): unknown[];
     }
-    export const months: any;
+    export const months: Record<string, number>;
 }

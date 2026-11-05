@@ -1,5 +1,5 @@
-import DashboardLayout from '@/components/dashboard/DashboardLayout';
+import AppShell from '@/components/app/AppShell';
 
 export default function DashboardPage() {
-    return <DashboardLayout />;
+    return <AppShell />;
 }

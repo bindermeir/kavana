@@ -2,9 +2,10 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Mail, Lock, Loader2, AlertCircle, Sparkles } from 'lucide-react';
+import { Mail, Lock, Loader2, AlertCircle } from 'lucide-react';
 import { useAuth } from './AuthProvider';
-import Menorah from '@/components/dashboard/Menorah';
+import Menorah from '@/components/menorah/Menorah';
+import { dayIndex, localDateStr } from '@/lib/dates';
 
 interface AuthFormProps {
     onSuccess?: () => void;
@@ -17,18 +18,21 @@ export default function AuthForm({ onSuccess }: AuthFormProps) {
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [info, setInfo] = useState<string | null>(null);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
         setError(null);
 
-        const { error } = mode === 'login'
+        const result = mode === 'login'
             ? await signInWithEmail(email, password)
             : await signUpWithEmail(email, password);
 
-        if (error) {
-            setError(translateError(error.message));
+        if (result.error) {
+            setError(translateError(result.error.message));
+        } else if ('needsConfirmation' in result && result.needsConfirmation) {
+            setInfo('שלחנו אליך מייל. לחיצה על הקישור שבו תפתח את הספר.');
         } else {
             onSuccess?.();
         }
@@ -65,13 +69,13 @@ export default function AuthForm({ onSuccess }: AuthFormProps) {
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
                     transition={{ type: "spring", duration: 0.5 }}
-                    className="w-20 h-20 mx-auto mb-4 flex items-center justify-center"
+                    className="w-28 mx-auto mb-4 flex items-center justify-center"
                 >
-                    <Menorah activeDay={new Date().getDay()} className="w-full h-full" />
+                    <Menorah litThrough={dayIndex(localDateStr())} className="w-full h-full" />
                 </motion.div>
-                <h1 className="text-3xl font-bold gradient-text">כוונה</h1>
+                <h1 className="text-4xl font-bold">כוונה</h1>
                 <p className="text-text-secondary text-sm mt-2">
-                    {mode === 'login' ? 'ברוכים השבים' : 'יצירת חשבון חדש'}
+                    {mode === 'login' ? 'ברוכים השבים' : 'פותחים ספר חדש'}
                 </p>
             </div>
 
@@ -81,7 +85,7 @@ export default function AuthForm({ onSuccess }: AuthFormProps) {
                 disabled={loading}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                className="w-full flex items-center justify-center gap-3 py-4 px-4 rounded-2xl border border-border-color bg-card-bg hover:bg-surface-bg transition-all duration-200 mb-6 shadow-sm"
+                className="w-full flex items-center justify-center gap-3 py-4 px-4 rounded-2xl border border-accent-border/40 bg-app-bg/60 hover:bg-app-bg transition-colors mb-6"
             >
                 <svg className="w-5 h-5" viewBox="0 0 24 24">
                     <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -94,19 +98,22 @@ export default function AuthForm({ onSuccess }: AuthFormProps) {
 
             {/* Divider */}
             <div className="flex items-center gap-4 my-6">
-                <div className="flex-1 h-px bg-border-color" />
+                <div className="flex-1 h-px bg-accent-border/30" />
                 <span className="text-xs text-text-muted font-medium">או</span>
-                <div className="flex-1 h-px bg-border-color" />
+                <div className="flex-1 h-px bg-accent-border/30" />
             </div>
 
             {/* Email Form */}
             <form onSubmit={handleSubmit} className="space-y-4">
+                {info && (
+                    <p className="p-4 rounded-xl bg-accent-active/10 border border-accent-active/30 text-sm leading-relaxed">{info}</p>
+                )}
                 {/* Error Message */}
                 {error && (
                     <motion.div
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="flex items-center gap-3 p-4 rounded-xl bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-400 text-sm"
+                        className="flex items-center gap-3 p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-700 dark:text-rose-300 text-sm"
                     >
                         <AlertCircle className="w-5 h-5 flex-shrink-0" />
                         {error}
@@ -152,13 +159,12 @@ export default function AuthForm({ onSuccess }: AuthFormProps) {
                     disabled={loading}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    className="w-full py-4 rounded-2xl font-bold text-lg text-white bg-gradient-to-r from-primary to-purple-600 shadow-lg shadow-primary/25 flex items-center justify-center gap-2 disabled:opacity-70"
+                    className="btn-primary w-full text-lg flex items-center justify-center gap-2"
                 >
                     {loading ? (
                         <Loader2 className="w-5 h-5 animate-spin" />
                     ) : (
                         <>
-                            <Sparkles className="w-5 h-5" />
                             {mode === 'login' ? 'התחברות' : 'יצירת חשבון'}
                         </>
                     )}
@@ -172,7 +178,7 @@ export default function AuthForm({ onSuccess }: AuthFormProps) {
                         אין לך חשבון?{' '}
                         <button
                             onClick={() => setMode('signup')}
-                            className="text-primary font-semibold hover:underline"
+                            className="text-accent-active font-semibold hover:underline"
                         >
                             הרשמה
                         </button>
@@ -182,7 +188,7 @@ export default function AuthForm({ onSuccess }: AuthFormProps) {
                         יש לך חשבון?{' '}
                         <button
                             onClick={() => setMode('login')}
-                            className="text-primary font-semibold hover:underline"
+                            className="text-accent-active font-semibold hover:underline"
                         >
                             התחברות
                         </button>

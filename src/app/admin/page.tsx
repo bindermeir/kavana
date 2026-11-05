@@ -1,223 +1,165 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect } from 'react';
-import { 
-    getPendingAlerts, resolveAlert, AdminAlert,
-    getDynamicCultures, saveDynamicCulture, deleteDynamicCulture, DynamicCulture,
-    getSystemConfig, updateSystemConfig,
-    getFeedbackLogs, UserFeedback,
-    getTelemetryStats
-} from '@/lib/admin';
-import { Shield, CheckCircle, AlertTriangle, Settings, Book, BarChart2, MessageSquare } from 'lucide-react';
+import React, { useCallback, useEffect, useState } from 'react';
+import Link from 'next/link';
+import { BarChart2, Book, CheckCircle, Loader2, MessageSquare, Settings, Shield, Trash2, TriangleAlert } from 'lucide-react';
+import { toast } from 'sonner';
+import { useAuth } from '@/components/auth/AuthProvider';
+import { api } from '@/lib/api-client';
 
-export default function AdminDashboard() {
-    const [isAuthenticated, setIsAuthenticated] = useState(false);
-    const [password, setPassword] = useState('');
-    const [activeTab, setActiveTab] = useState('alerts');
+type Tab = 'alerts' | 'cultures' | 'prompt' | 'feedback' | 'telemetry';
 
-    // Data States
-    const [alerts, setAlerts] = useState<AdminAlert[]>([]);
-    const [cultures, setCultures] = useState<DynamicCulture[]>([]);
-    const [feedback, setFeedback] = useState<UserFeedback[]>([]);
-    const [stats, setStats] = useState<{type: string, count: number}[]>([]);
-    const [promptOverride, setPromptOverride] = useState('');
-    
-    // UI States
-    const [loading, setLoading] = useState(false);
-    const [newCultureName, setNewCultureName] = useState('');
+interface Alert { id: string; type: string; content: string; created_at: string }
+interface Culture { id: string; name: string; type: string }
+interface Feedback { id: string; content_type: string; generated_text: string | null; feedback_score: number; created_at: string }
+
+const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
+    { id: 'alerts', label: 'התראות', icon: TriangleAlert },
+    { id: 'cultures', label: 'תרבויות', icon: Book },
+    { id: 'prompt', label: 'הנחיה ל-AI', icon: Settings },
+    { id: 'feedback', label: 'משוב', icon: MessageSquare },
+    { id: 'telemetry', label: 'שימוש', icon: BarChart2 },
+];
+
+const get = <T,>(what: string) => api<{ data: T }>(`/api/admin?what=${what}`, undefined, 'GET').then((r) => r.data);
+const post = (body: Record<string, unknown>) => api('/api/admin', body);
+
+/**
+ * Admin. Access is decided on the server: the signed-in user's email
+ * must be listed in ADMIN_EMAILS. There is no password in the code.
+ */
+export default function AdminPage() {
+    const { user, loading } = useAuth();
+    const [allowed, setAllowed] = useState<boolean | null>(null);
+    const [tab, setTab] = useState<Tab>('alerts');
+    const [busy, setBusy] = useState(false);
+
+    const [alerts, setAlerts] = useState<Alert[]>([]);
+    const [cultures, setCultures] = useState<Culture[]>([]);
+    const [prompt, setPrompt] = useState('');
+    const [feedback, setFeedback] = useState<Feedback[]>([]);
+    const [stats, setStats] = useState<{ type: string; count: number }[]>([]);
+    const [newCulture, setNewCulture] = useState('');
 
     useEffect(() => {
-        if (isAuthenticated) {
-            loadData();
+        if (loading) return;
+        if (!user) return setAllowed(false);
+        get<boolean>('me').then(() => setAllowed(true)).catch(() => setAllowed(false));
+    }, [user, loading]);
+
+    const load = useCallback(async () => {
+        setBusy(true);
+        try {
+            if (tab === 'alerts') setAlerts(await get<Alert[]>('alerts'));
+            if (tab === 'cultures') setCultures(await get<Culture[]>('cultures'));
+            if (tab === 'prompt') setPrompt(await get<string>('config'));
+            if (tab === 'feedback') setFeedback(await get<Feedback[]>('feedback'));
+            if (tab === 'telemetry') setStats(await get<{ type: string; count: number }[]>('telemetry'));
+        } catch {
+            toast.error('טעינה נכשלה');
+        } finally {
+            setBusy(false);
         }
-    }, [isAuthenticated, activeTab]);
+    }, [tab]);
 
-    const loadData = async () => {
-        setLoading(true);
-        if (activeTab === 'alerts') {
-            setAlerts(await getPendingAlerts());
-        } else if (activeTab === 'cultures') {
-            setCultures(await getDynamicCultures());
-        } else if (activeTab === 'prompt') {
-            setPromptOverride(await getSystemConfig('global_ai_prompt_override') || '');
-        } else if (activeTab === 'feedback') {
-            setFeedback(await getFeedbackLogs());
-        } else if (activeTab === 'telemetry') {
-            setStats(await getTelemetryStats());
-        }
-        setLoading(false);
-    };
+    useEffect(() => {
+        if (allowed) load();
+    }, [allowed, load]);
 
-    const handleLogin = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (password === 'kavana-admin-2026') {
-            setIsAuthenticated(true);
-        } else {
-            alert('סיסמה שגויה');
-        }
-    };
+    if (allowed === null) {
+        return <div className="min-h-dvh flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-accent-active" /></div>;
+    }
 
-    const handleResolveAlert = async (id: string) => {
-        await resolveAlert(id);
-        setAlerts(alerts.filter(a => a.id !== id));
-    };
-
-    const handleAddCulture = async () => {
-        if (!newCultureName) return;
-        await saveDynamicCulture(newCultureName, 'religion', []);
-        setNewCultureName('');
-        loadData();
-    };
-
-    const handleDeleteCulture = async (id: string) => {
-        if (confirm('Are you sure?')) {
-            await deleteDynamicCulture(id);
-            loadData();
-        }
-    };
-
-    const handleSavePrompt = async () => {
-        await updateSystemConfig('global_ai_prompt_override', promptOverride);
-        alert('Prompt saved!');
-    };
-
-    if (!isAuthenticated) {
+    if (!allowed) {
         return (
-            <div className="min-h-screen bg-app-bg flex items-center justify-center p-4">
-                <form onSubmit={handleLogin} className="sacred-card p-8 max-w-sm w-full space-y-6">
-                    <div className="text-center">
-                        <Shield className="w-12 h-12 mx-auto text-primary mb-4" />
-                        <h1 className="text-2xl font-bold">Admin Portal</h1>
-                    </div>
-                    <input type="password" placeholder="Admin Password" value={password} onChange={(e) => setPassword(e.target.value)} className="input w-full" />
-                    <button type="submit" className="btn-primary w-full">Enter</button>
-                </form>
+            <div className="min-h-dvh flex flex-col items-center justify-center gap-4 p-6 text-center">
+                <Shield className="w-12 h-12 text-text-muted" />
+                <h1 className="text-2xl font-bold">אין גישה</h1>
+                <p className="text-text-secondary">הדף הזה פתוח רק לצוות כוונה.</p>
+                <Link href={user ? '/dashboard' : '/login'} className="btn-primary">{user ? 'חזרה' : 'כניסה'}</Link>
             </div>
         );
     }
 
-    const tabs = [
-        { id: 'alerts', label: 'Alerts', icon: <AlertTriangle className="w-4 h-4" /> },
-        { id: 'cultures', label: 'Cultures', icon: <Book className="w-4 h-4" /> },
-        { id: 'prompt', label: 'AI Tuning', icon: <Settings className="w-4 h-4" /> },
-        { id: 'feedback', label: 'Feedback', icon: <MessageSquare className="w-4 h-4" /> },
-        { id: 'telemetry', label: 'Telemetry', icon: <BarChart2 className="w-4 h-4" /> },
-    ];
-
     return (
-        <div className="min-h-screen bg-app-bg p-4 md:p-8" dir="ltr">
-            <div className="max-w-5xl mx-auto space-y-8">
-                <header className="flex justify-between items-center bg-white p-6 rounded-2xl shadow-sm border border-black/5">
-                    <h1 className="text-2xl font-bold flex items-center gap-3">
-                        <Shield className="w-8 h-8 text-primary" />
-                        Kavana Control Center
-                    </h1>
-                    <button onClick={loadData} className="btn-ghost px-4 py-2">Refresh</button>
-                </header>
+        <div className="min-h-dvh max-w-4xl mx-auto px-4 py-8 space-y-6">
+            <header className="flex items-center justify-between">
+                <h1 className="text-3xl font-bold flex items-center gap-2"><Shield className="w-7 h-7" /> ניהול</h1>
+                <Link href="/dashboard" className="btn-quiet">לאפליקציה</Link>
+            </header>
 
-                <div className="flex gap-2 overflow-x-auto pb-2">
-                    {tabs.map(t => (
-                        <button 
-                            key={t.id} 
-                            onClick={() => setActiveTab(t.id)}
-                            className={`flex items-center gap-2 px-4 py-3 rounded-xl font-medium whitespace-nowrap transition-all ${activeTab === t.id ? 'bg-primary text-white shadow-md' : 'bg-white text-text-secondary hover:bg-gray-50'}`}
-                        >
-                            {t.icon} {t.label}
-                        </button>
-                    ))}
-                </div>
+            <nav className="flex flex-wrap gap-2">
+                {TABS.map(({ id, label, icon: Icon }) => (
+                    <button key={id} className="chip flex items-center gap-2 !py-2" aria-pressed={tab === id} onClick={() => setTab(id)}>
+                        <Icon className="w-4 h-4" /> {label}
+                    </button>
+                ))}
+            </nav>
 
-                <main className="sacred-card p-6 min-h-[500px]">
-                    {loading ? (
-                        <div className="py-20 text-center text-text-secondary">Loading...</div>
-                    ) : (
-                        <>
-                            {/* ALERTS TAB */}
-                            {activeTab === 'alerts' && (
-                                <div className="space-y-4">
-                                    <h2 className="text-xl font-bold mb-6">Pending Alerts</h2>
-                                    {alerts.length === 0 ? <p className="text-text-secondary">No pending alerts.</p> : alerts.map(alert => (
-                                        <div key={alert.id} className="border border-red-100 bg-red-50/50 p-4 rounded-xl flex justify-between items-center">
-                                            <div>
-                                                <span className="text-xs font-bold uppercase text-red-500">{alert.type}</span>
-                                                <p className="text-lg font-medium">"{alert.content}"</p>
-                                                <p className="text-xs text-text-secondary">User: {alert.user_id}</p>
-                                            </div>
-                                            <button onClick={() => handleResolveAlert(alert.id)} className="btn-ghost bg-white">Resolve</button>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-
-                            {/* CULTURES TAB */}
-                            {activeTab === 'cultures' && (
-                                <div className="space-y-6">
-                                    <h2 className="text-xl font-bold">Dynamic Cultures Dictionary</h2>
-                                    <div className="flex gap-2">
-                                        <input type="text" placeholder="New Culture Name (e.g., Buddhism)" className="input flex-1" value={newCultureName} onChange={e => setNewCultureName(e.target.value)} />
-                                        <button onClick={handleAddCulture} className="btn-primary px-6">Add</button>
+            <section className="sacred-card min-h-64">
+                {busy ? (
+                    <Loader2 className="w-6 h-6 animate-spin mx-auto text-text-muted" />
+                ) : tab === 'alerts' ? (
+                    alerts.length === 0 ? <p className="text-text-secondary">אין התראות פתוחות.</p> : (
+                        <ul className="space-y-3">
+                            {alerts.map((a) => (
+                                <li key={a.id} className="flex items-center justify-between gap-3 border-b border-accent-border/20 pb-3">
+                                    <div>
+                                        <p className="font-medium">{a.content}</p>
+                                        <p className="text-xs text-text-muted">{a.type === 'custom_belief' ? 'אמונה' : 'תרבות'} · {new Date(a.created_at).toLocaleDateString('he-IL')}</p>
                                     </div>
-                                    <div className="space-y-2 mt-4">
-                                        {cultures.map(c => (
-                                            <div key={c.id} className="p-4 border rounded-xl flex justify-between items-center bg-gray-50/50">
-                                                <span className="font-medium text-lg">{c.name}</span>
-                                                <button onClick={() => handleDeleteCulture(c.id)} className="text-red-500 hover:bg-red-50 px-3 py-1 rounded">Delete</button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* PROMPT TAB */}
-                            {activeTab === 'prompt' && (
-                                <div className="space-y-4">
-                                    <h2 className="text-xl font-bold">Global AI Prompt Override</h2>
-                                    <p className="text-sm text-text-secondary mb-4">Leave empty to use hardcoded prompts. Any text here will be injected into all AI generations.</p>
-                                    <textarea 
-                                        className="w-full h-64 input font-mono text-sm" 
-                                        value={promptOverride} 
-                                        onChange={e => setPromptOverride(e.target.value)}
-                                        placeholder="Enter strict system prompt override here..."
-                                    />
-                                    <button onClick={handleSavePrompt} className="btn-primary w-full">Save Global Override</button>
-                                </div>
-                            )}
-
-                            {/* FEEDBACK TAB */}
-                            {activeTab === 'feedback' && (
-                                <div className="space-y-4">
-                                    <h2 className="text-xl font-bold mb-6">User Feedback Logs</h2>
-                                    {feedback.length === 0 ? <p className="text-text-secondary">No feedback yet.</p> : feedback.map(f => (
-                                        <div key={f.id} className="border p-4 rounded-xl space-y-2">
-                                            <div className="flex justify-between items-start">
-                                                <span className="text-xs font-bold bg-gray-100 px-2 py-1 rounded uppercase">{f.content_type}</span>
-                                                <span className="text-2xl">{f.feedback_score > 0 ? '👍' : '👎'}</span>
-                                            </div>
-                                            <div className="bg-gray-50 p-3 rounded text-sm font-medium">"{f.generated_text}"</div>
-                                            {f.feedback_notes && <p className="text-sm text-red-600 font-bold">Note: {f.feedback_notes}</p>}
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-
-                            {/* TELEMETRY TAB */}
-                            {activeTab === 'telemetry' && (
-                                <div className="space-y-4">
-                                    <h2 className="text-xl font-bold mb-6">System Telemetry (Anonymous)</h2>
-                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                        {stats.map(s => (
-                                            <div key={s.type} className="bg-primary/5 border border-primary/10 p-6 rounded-2xl text-center">
-                                                <p className="text-3xl font-bold text-primary">{s.count}</p>
-                                                <p className="text-xs font-bold text-text-secondary uppercase mt-2">{s.type.replace(/_/g, ' ')}</p>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-                        </>
-                    )}
-                </main>
-            </div>
+                                    <button className="btn-quiet flex items-center gap-1 text-sm" onClick={async () => { await post({ action: 'resolveAlert', id: a.id }); setAlerts(alerts.filter((x) => x.id !== a.id)); }}>
+                                        <CheckCircle className="w-4 h-4" /> טופל
+                                    </button>
+                                </li>
+                            ))}
+                        </ul>
+                    )
+                ) : tab === 'cultures' ? (
+                    <div className="space-y-4">
+                        <div className="flex gap-2">
+                            <input className="input flex-1" placeholder="שם תרבות חדשה" value={newCulture} onChange={(e) => setNewCulture(e.target.value)} />
+                            <button className="btn-primary !py-2" disabled={!newCulture.trim()} onClick={async () => { await post({ action: 'addCulture', name: newCulture }); setNewCulture(''); load(); }}>הוספה</button>
+                        </div>
+                        <ul className="space-y-2">
+                            {cultures.map((c) => (
+                                <li key={c.id} className="flex items-center justify-between border-b border-accent-border/20 pb-2">
+                                    <span>{c.name}</span>
+                                    <button className="btn-quiet !p-2" aria-label={`מחיקת ${c.name}`} onClick={async () => { if (confirm(`למחוק את ${c.name}?`)) { await post({ action: 'deleteCulture', id: c.id }); load(); } }}>
+                                        <Trash2 className="w-4 h-4" />
+                                    </button>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                ) : tab === 'prompt' ? (
+                    <div className="space-y-4">
+                        <p className="text-sm text-text-secondary">הנחיה נוספת שמצורפת לכל יצירה של ה-AI, לכל המשתמשים. שינוי כאן משפיע מיד.</p>
+                        <textarea className="input w-full h-64 font-mono text-sm" dir="auto" value={prompt} onChange={(e) => setPrompt(e.target.value)} maxLength={4000} />
+                        <button className="btn-primary" onClick={async () => { await post({ action: 'setConfig', value: prompt }); toast.success('נשמר'); }}>שמירה</button>
+                    </div>
+                ) : tab === 'feedback' ? (
+                    feedback.length === 0 ? <p className="text-text-secondary">אין משוב עדיין.</p> : (
+                        <ul className="space-y-4">
+                            {feedback.map((f) => (
+                                <li key={f.id} className="border-b border-accent-border/20 pb-3 space-y-1">
+                                    <p className="text-sm">{f.feedback_score > 0 ? '👍' : '👎'} · {f.content_type} · {new Date(f.created_at).toLocaleDateString('he-IL')}</p>
+                                    <p className="text-sm text-text-secondary whitespace-pre-wrap line-clamp-4">{f.generated_text}</p>
+                                </li>
+                            ))}
+                        </ul>
+                    )
+                ) : (
+                    <ul className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        {stats.map((s) => (
+                            <li key={s.type} className="rounded-xl bg-app-bg p-4">
+                                <p className="text-3xl font-bold">{s.count}</p>
+                                <p className="text-sm text-text-secondary">{s.type}</p>
+                            </li>
+                        ))}
+                    </ul>
+                )}
+            </section>
         </div>
     );
 }
