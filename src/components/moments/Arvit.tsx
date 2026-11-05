@@ -96,10 +96,12 @@ export default function Arvit() {
                         <Pencil className="w-4 h-4" />
                         עריכה
                     </button>
-                    <button className="btn-quiet flex items-center gap-2 font-medium text-accent-active" onClick={() => setSharing(true)}>
-                        <Share2 className="w-4 h-4" />
-                        משפט היום
-                    </button>
+                    {entry.share_lines && Object.keys(entry.share_lines).length > 0 && (
+                        <button className="btn-quiet flex items-center gap-2 font-medium text-accent-active" onClick={() => setSharing(true)}>
+                            <Share2 className="w-4 h-4" />
+                            משפט היום
+                        </button>
+                    )}
                 </div>
                 <p className="text-center text-sacred text-text-secondary">לילה טוב.</p>
 
