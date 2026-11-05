@@ -108,11 +108,12 @@ export default function AppShell() {
                 <header className="max-w-lg mx-auto px-5 pt-5 flex flex-col items-center gap-2">
                     <Menorah
                         litThrough={todayIndex}
+                        todayIndex={todayIndex}
                         levels={weekLevels}
                         selected={tab === 'book' && bookDate ? dayIndex(bookDate) : null}
                         onSelect={(d) => d <= todayIndex && openBookOn(addDays(thisWeek, d))}
                         onLongPress={() => setSecret(true)}
-                        className="w-28"
+                        className="w-36"
                     />
                     <DateLine date={today} zadok={profile.calendar_subscriptions.includes('zadok')} />
                 </header>

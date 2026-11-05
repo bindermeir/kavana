@@ -1,35 +1,56 @@
 'use client';
 
 import React, { useId, useRef } from 'react';
-import { DAY_NAMES_HE } from '@/lib/dates';
+import { DAY_NAMES_HE, isEveningHour } from '@/lib/dates';
 
-interface MenorahProps {
-    /**
-     * How far into the week we are: 0 (Sunday) ... 6 (Shabbat).
-     * Every candle up to and including this one is lit. Use 6 for a past week.
-     */
+/**
+ * The menorah is the week's clock (see PHILOSOPHY.md, "נר תמיד").
+ * Shape: the round branches of the Arch of Titus, without the base: only branches and flames.
+ *
+ * A day's candle:
+ * - past day: lit; its flame grows with the moments that were done (0..3)
+ * - today: lit once shacharit is done, and by itself in the evening
+ *   ("הנר נדלק בערב בכל מקרה"); before that a ready wick waits in the cup
+ * - Sunday's candle, the western one, is never out ("ממנה היה מדליק")
+ * - future day: an empty cup
+ */
+export interface MenorahProps {
+    /** The last day of the week that has arrived, 0 (Sunday) ... 6 (Shabbat). Use 6 for a past week, -1 for a future one. */
     litThrough: number;
-    /** Per day (0..6): how many of the three moments were done (0..3). The flame grows with each. */
+    /** Which day is today, or null when showing a past week. */
+    todayIndex?: number | null;
+    /** Moments done per day (0..3). */
     levels?: number[];
-    /** Highlights one day's candle (e.g. the day being viewed). */
+    /** Evening lights today's candle even without any moment. Defaults to the current hour. */
+    evening?: boolean;
     selected?: number | null;
     onSelect?: (day: number) => void;
-    /** Long press anywhere on the menorah: opens "the secret of the menorah". */
+    /** Long press anywhere: "the secret of the menorah". */
     onLongPress?: () => void;
     className?: string;
-    /** Draw the tiny day names under the cups. */
     showDayNames?: boolean;
 }
 
-// Sunday is the rightmost candle; the week is read right to left, like Hebrew.
+// Sunday is the rightmost candle; the week reads right to left.
 const CUP_X = [105, 90, 75, 60, 45, 30, 15];
-const CUP_Y = 30;
-const DAY_LETTERS = ["א'", "ב'", "ג'", "ד'", "ה'", "ו'", 'ש'];
+const CUP_Y = 26;
 const MIDDLE = 3; // Wednesday: the day the lights were made
+const DAY_LETTERS = ["א'", "ב'", "ג'", "ד'", "ה'", "ו'", 'ש'];
+
+export type CandleState = 'future' | 'ready' | 'lit';
+
+export function candleState(day: number, litThrough: number, todayIndex: number | null | undefined, level: number, evening: boolean): CandleState {
+    if (day > litThrough) return 'future';
+    if (day !== todayIndex) return 'lit';
+    if (day === 0 || level > 0 || evening) return 'lit';
+    return 'ready';
+}
 
 export default function Menorah({
     litThrough,
+    todayIndex = null,
     levels = [],
+    evening,
     selected = null,
     onSelect,
     onLongPress,
@@ -39,6 +60,7 @@ export default function Menorah({
     const uid = useId().replace(/:/g, '');
     const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const longPressed = useRef(false);
+    const isEvening = evening ?? isEveningHour(new Date().getHours());
 
     const startPress = () => {
         if (!onLongPress) return;
@@ -52,14 +74,9 @@ export default function Menorah({
         if (pressTimer.current) clearTimeout(pressTimer.current);
     };
 
-    const select = (d: number) => {
-        if (longPressed.current) return;
-        onSelect?.(d);
-    };
-
     return (
         <svg
-            viewBox={`0 0 120 ${showDayNames ? 104 : 96}`}
+            viewBox={`0 0 120 ${showDayNames ? 88 : 76}`}
             className={`${className} h-auto text-metal select-none overflow-visible`}
             role="group"
             aria-label="מנורת השבוע"
@@ -71,33 +88,33 @@ export default function Menorah({
             <defs>
                 <radialGradient id={`flame-${uid}`} cx="50%" cy="72%" r="65%">
                     <stop offset="0" stopColor="var(--flame-core)" />
-                    <stop offset="0.45" stopColor="var(--flame-bright)" />
-                    <stop offset="1" stopColor="var(--flame)" stopOpacity="0.15" />
+                    <stop offset="0.5" stopColor="var(--flame-bright)" />
+                    <stop offset="1" stopColor="var(--flame)" stopOpacity="0.12" />
                 </radialGradient>
                 <radialGradient id={`halo-${uid}`}>
-                    <stop offset="0" stopColor="var(--flame-bright)" stopOpacity="0.55" />
+                    <stop offset="0" stopColor="var(--flame-bright)" stopOpacity="0.45" />
                     <stop offset="1" stopColor="var(--flame-bright)" stopOpacity="0" />
                 </radialGradient>
             </defs>
 
-            {/* Body: base, stem and the six arms */}
-            <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M30,85 L30,92 L90,92 L90,85 L85,85 L85,80 L35,80 L35,85 Z" />
-                <rect x="57" y={CUP_Y} width="6" height="50" />
-                <path d={`M60,50 Q70,45 75,${CUP_Y + 2}`} />
-                <path d={`M60,60 Q78,52 90,${CUP_Y + 2}`} />
-                <path d={`M60,70 Q86,60 105,${CUP_Y + 2}`} />
-                <path d={`M60,50 Q50,45 45,${CUP_Y + 2}`} />
-                <path d={`M60,60 Q42,52 30,${CUP_Y + 2}`} />
-                <path d={`M60,70 Q34,60 15,${CUP_Y + 2}`} />
+            {/* The branches of the Arch of Titus, no base */}
+            <g fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                <path d="M15,26 A45,45 0 0 0 105,26" />
+                <path d="M30,26 A30,30 0 0 0 90,26" />
+                <path d="M45,26 A15,15 0 0 0 75,26" />
+                <line x1="60" y1="26" x2="60" y2="71" />
             </g>
 
             {CUP_X.map((x, day) => {
-                const lit = day <= litThrough;
                 const level = Math.max(0, Math.min(3, levels[day] || 0));
-                const scale = 0.72 + level * 0.16; // a lit candle is always on; each moment feeds it
+                const state = candleState(day, litThrough, todayIndex, level, isEvening);
+                const scale = 0.7 + level * 0.14;
                 const isSelected = selected === day;
-                const label = `${day === 6 ? 'שבת' : `יום ${DAY_NAMES_HE[day]}`}${lit ? `, ${level} מתוך 3 רגעים` : ''}`;
+                const name = day === 6 ? 'שבת' : `יום ${DAY_NAMES_HE[day]}`;
+                const label =
+                    state === 'future' ? name :
+                    state === 'ready' ? `${name}, הנר מוכן להדלקה` :
+                    `${name}, ${level} מתוך 3 רגעים`;
 
                 return (
                     <g
@@ -106,7 +123,7 @@ export default function Menorah({
                         tabIndex={onSelect ? 0 : undefined}
                         aria-label={label}
                         aria-pressed={onSelect ? isSelected : undefined}
-                        onClick={() => select(day)}
+                        onClick={() => !longPressed.current && onSelect?.(day)}
                         onKeyDown={(e) => {
                             if (e.key === 'Enter' || e.key === ' ') {
                                 e.preventDefault();
@@ -115,17 +132,13 @@ export default function Menorah({
                         }}
                         style={{ cursor: onSelect ? 'pointer' : undefined, outline: 'none' }}
                     >
-                        {/* generous invisible hit area */}
-                        <rect x={x - 7.5} y={0} width={15} height={CUP_Y + 10} fill="transparent" />
+                        <rect x={x - 7.5} y={0} width={15} height={CUP_Y + 8} fill="transparent" />
 
-                        {lit && day === MIDDLE && (
-                            <circle cx={x} cy={CUP_Y - 9} r={13} fill={`url(#halo-${uid})`} opacity={0.75} />
-                        )}
-                        {lit && level === 3 && day !== MIDDLE && (
-                            <circle cx={x} cy={CUP_Y - 9} r={9} fill={`url(#halo-${uid})`} opacity={0.5} />
+                        {state === 'lit' && (day === MIDDLE || level === 3) && (
+                            <circle cx={x} cy={CUP_Y - 11} r={day === MIDDLE ? 12 : 9} fill={`url(#halo-${uid})`} />
                         )}
 
-                        {lit && (
+                        {state === 'lit' && (
                             <g transform={`translate(${x} ${CUP_Y - 3}) scale(${scale})`}>
                                 <path
                                     className="flame"
@@ -136,17 +149,28 @@ export default function Menorah({
                             </g>
                         )}
 
-                        <circle cx={x} cy={CUP_Y} r="5" fill="none" stroke="currentColor" strokeWidth="1.5" />
-                        <circle cx={x} cy={CUP_Y} r="3" fill={lit ? 'var(--flame)' : 'currentColor'} opacity={lit ? 1 : 0.55} />
+                        {state === 'ready' && (
+                            <line x1={x} y1={CUP_Y - 1} x2={x} y2={CUP_Y - 6} stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+                        )}
+
+                        {/* the cup */}
+                        <path
+                            d={`M${x - 5},${CUP_Y - 2} Q${x},${CUP_Y + 3} ${x + 5},${CUP_Y - 2}`}
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.2"
+                            strokeLinecap="round"
+                            opacity={state === 'future' ? 0.45 : 1}
+                        />
 
                         {isSelected && (
-                            <circle cx={x} cy={CUP_Y} r="8" fill="none" stroke="var(--accent-active)" strokeWidth="1.2" />
+                            <circle cx={x} cy={CUP_Y - 8} r="10" fill="none" stroke="var(--accent-active)" strokeWidth="1" />
                         )}
 
                         {showDayNames && (
                             <text
                                 x={x}
-                                y={101}
+                                y={86}
                                 textAnchor="middle"
                                 fontSize="6"
                                 fill="currentColor"

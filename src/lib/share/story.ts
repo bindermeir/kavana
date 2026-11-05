@@ -66,12 +66,9 @@ function drawMenorah(ctx: CanvasRenderingContext2D, cx: number, top: number, sca
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
 
-    const body = [
-        'M30,85 L30,92 L90,92 L90,85 L85,85 L85,80 L35,80 L35,85 Z',
-        'M57,30 L63,30 L63,80 L57,80 Z',
-        'M60,50 Q70,45 75,32', 'M60,60 Q78,52 90,32', 'M60,70 Q86,60 105,32',
-        'M60,50 Q50,45 45,32', 'M60,60 Q42,52 30,32', 'M60,70 Q34,60 15,32',
-    ];
+    // The branches of the Arch of Titus, no base
+    const body = ['M15,26 A45,45 0 0 0 105,26', 'M30,26 A30,30 0 0 0 90,26', 'M45,26 A15,15 0 0 0 75,26', 'M60,26 L60,71'];
+    ctx.lineWidth = 1.5;
     body.forEach((d) => ctx.stroke(new Path2D(d)));
 
     const xs = [105, 90, 75, 60, 45, 30, 15];
@@ -80,40 +77,32 @@ function drawMenorah(ctx: CanvasRenderingContext2D, cx: number, top: number, sca
         const level = Math.max(0, Math.min(3, input.levels[day] || 0));
 
         if (lit && (day === 3 || level === 3)) {
-            const halo = ctx.createRadialGradient(x, 21, 0, x, 21, day === 3 ? 14 : 10);
+            const r = day === 3 ? 12 : 9;
+            const halo = ctx.createRadialGradient(x, 15, 0, x, 15, r);
             halo.addColorStop(0, 'rgba(242,184,102,0.45)');
             halo.addColorStop(1, 'rgba(242,184,102,0)');
             ctx.fillStyle = halo;
             ctx.beginPath();
-            ctx.arc(x, 21, day === 3 ? 14 : 10, 0, Math.PI * 2);
+            ctx.arc(x, 15, r, 0, Math.PI * 2);
             ctx.fill();
         }
-
         if (lit) {
-            const s = 0.72 + level * 0.16;
+            const s = 0.7 + level * 0.14;
             ctx.save();
-            ctx.translate(x, 27);
+            ctx.translate(x, 23);
             ctx.scale(s, s);
             const g = ctx.createRadialGradient(0, -5, 0, 0, -6, 12);
             g.addColorStop(0, '#FFF3D6');
-            g.addColorStop(0.45, '#F2B866');
-            g.addColorStop(1, 'rgba(212,165,116,0.15)');
+            g.addColorStop(0.5, '#F0A84E');
+            g.addColorStop(1, 'rgba(224,137,46,0.12)');
             ctx.fillStyle = g;
             ctx.fill(new Path2D('M0,-17 C4.5,-10 5,-4 0,0 C-5,-4 -4.5,-10 0,-17 Z'));
             ctx.restore();
         }
-
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.arc(x, 30, 5, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.fillStyle = lit ? '#D4A574' : pal.cup;
-        ctx.globalAlpha = lit ? 1 : 0.55;
-        ctx.beginPath();
-        ctx.arc(x, 30, 3, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.globalAlpha = lit ? 1 : 0.45;
+        ctx.lineWidth = 1.2;
+        ctx.stroke(new Path2D(`M${x - 5},24 Q${x},29 ${x + 5},24`));
         ctx.globalAlpha = 1;
-        ctx.lineWidth = 2;
     });
     ctx.restore();
 }
@@ -152,7 +141,7 @@ export async function drawStory(input: StoryInput): Promise<Blob> {
     ctx.stroke();
     ctx.globalAlpha = 1;
 
-    drawMenorah(ctx, W / 2, 200, 3.6, input, pal);
+    drawMenorah(ctx, W / 2, 230, 3.8, input, pal);
 
     ctx.textAlign = 'center';
     ctx.fillStyle = pal.soft;

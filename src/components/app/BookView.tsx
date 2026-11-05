@@ -107,6 +107,7 @@ export default function BookView({ initialDate }: { initialDate: string }) {
                 <div className="flex justify-center">
                     <Menorah
                         litThrough={litThrough}
+                        todayIndex={isCurrent ? todayIndex : null}
                         levels={levels}
                         selected={dayIndex(selected)}
                         onSelect={(d) => d <= litThrough && setSelected(addDays(week, d))}

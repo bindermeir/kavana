@@ -109,17 +109,17 @@ export default function OnboardingWizard() {
         const today = dayIndex(localDateStr());
         return (
             <div className="min-h-dvh flex flex-col items-center justify-center px-6 text-center max-w-md mx-auto gap-8">
-                <Menorah litThrough={today} levels={Array(7).fill(0)} className="w-44" />
+                <Menorah litThrough={today} todayIndex={today} levels={Array(7).fill(0)} evening={false} className="w-44" />
                 <div className="space-y-3">
-                    <h1 className="text-3xl font-bold">הנר של היום כבר דולק</h1>
+                    <h1 className="text-3xl font-bold">הנר של היום מוכן</h1>
                     <p className="text-text-secondary leading-relaxed">
-                        בכל יום השבוע נשאל שאלה אחת קטנה, וכל תשובה תעשה את הכוונה של מחר מדויקת יותר.
+                        הכוונה הראשונה תדליק אותו. בכל יום השבוע נשאל שאלה אחת קטנה, וכל תשובה תעשה את הכוונה של מחר מדויקת יותר.
                         עד השבת המנורה תהיה שלמה, וגם ההיכרות.
                     </p>
                 </div>
                 <div className="w-full space-y-3">
                     <button className="btn-primary w-full text-lg" onClick={() => router.push('/dashboard')}>
-                        לכוונה הראשונה
+                        להדליק את הנר
                     </button>
                     <button
                         className="btn-quiet w-full"
