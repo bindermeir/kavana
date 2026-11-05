@@ -2,6 +2,11 @@ import { createClient, type SupabaseClient, type User } from '@supabase/supabase
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+const schema = process.env.NEXT_PUBLIC_SUPABASE_SCHEMA || 'kavana';
+
+/** A Supabase client bound to Kavana's schema (no generated types). */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type DbClient = SupabaseClient<any, string, any>;
 
 export class HttpError extends Error {
     constructor(public status: number, message: string) {
@@ -14,7 +19,7 @@ export class HttpError extends Error {
  * goes through Row Level Security. The browser sends its access token in
  * the Authorization header; we verify it with Supabase before trusting it.
  */
-export async function getUserContext(req: Request): Promise<{ supabase: SupabaseClient; user: User }> {
+export async function getUserContext(req: Request): Promise<{ supabase: DbClient; user: User }> {
     if (!url || !anonKey) throw new HttpError(500, 'Supabase is not configured');
 
     const header = req.headers.get('authorization') || '';
@@ -22,6 +27,7 @@ export async function getUserContext(req: Request): Promise<{ supabase: Supabase
     if (!token) throw new HttpError(401, 'Not signed in');
 
     const supabase = createClient(url, anonKey, {
+        db: { schema },
         global: { headers: { Authorization: `Bearer ${token}` } },
         auth: { persistSession: false, autoRefreshToken: false },
     });
@@ -33,10 +39,10 @@ export async function getUserContext(req: Request): Promise<{ supabase: Supabase
 }
 
 /** Service-role client. Bypasses RLS: use only after an explicit admin check. */
-export function getServiceClient(): SupabaseClient {
+export function getServiceClient(): DbClient {
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
     if (!url || !serviceKey) throw new HttpError(500, 'Service role is not configured');
-    return createClient(url, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
+    return createClient(url, serviceKey, { db: { schema }, auth: { persistSession: false, autoRefreshToken: false } });
 }
 
 export function isAdminEmail(email: string | undefined | null): boolean {

@@ -1,16 +1,15 @@
-import type { SupabaseClient } from '@supabase/supabase-js';
-import { HttpError } from '../supabase-server';
+import { HttpError, type DbClient } from '../supabase-server';
 import { cleanText } from '../ai/gemini';
 import type { ShareLines, UserProfile } from '../types';
 
-export async function loadProfile(supabase: SupabaseClient, userId: string): Promise<UserProfile> {
+export async function loadProfile(supabase: DbClient, userId: string): Promise<UserProfile> {
     const { data, error } = await supabase.from('user_profiles').select('*').eq('id', userId).maybeSingle();
     if (error) throw new HttpError(500, 'Could not load profile');
     if (!data) throw new HttpError(409, 'Profile missing');
     return data as UserProfile;
 }
 
-export async function loadPortrait(supabase: SupabaseClient, userId: string): Promise<string> {
+export async function loadPortrait(supabase: DbClient, userId: string): Promise<string> {
     const { data } = await supabase.from('user_memory').select('portrait').eq('user_id', userId).maybeSingle();
     return data?.portrait || '';
 }
