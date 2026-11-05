@@ -65,7 +65,10 @@ export default function Home() {
                 </Link>
             </div>
 
-            <Link href="/about" className="text-sm text-text-muted pt-10">על כוונה</Link>
+            <div className="flex gap-4 text-sm text-text-muted pt-10">
+                <Link href="/about">על כוונה</Link>
+                <Link href="/privacy">מדיניות פרטיות</Link>
+            </div>
         </main>
     );
 }
