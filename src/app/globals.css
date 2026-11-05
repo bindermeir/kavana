@@ -1,173 +1,215 @@
 @import "tailwindcss";
 
-@import url('https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@300;400;500;600;700&family=Heebo:wght@300;400;500;600;700&display=swap');
+/* Night mode follows the .dark class that ThemeProvider sets on <html>. */
+@custom-variant dark (&:where(.dark, .dark *));
 
-@theme {
-  --color-primary: #5C403C;
-  --color-accent: #4F6D70;
-  --color-surface-bg: #F2EDE0;
-  --color-background: #E8E2D2;
-}
-
+/* ------------------------------------------------------------
+   Design tokens. Day: parchment, stone and wood.
+   Night: the same room by candlelight.
+   ------------------------------------------------------------ */
 :root {
-  /* Kežmarok Sanctuary - Day Mode */
   --app-bg: #E8E2D2;
+  --card-bg: #F2EDE0;
   --text-primary: #5C403C;
   --text-secondary: #7A7865;
+  --text-muted: #9A9484;
   --accent-active: #4F6D70;
+  --accent-contrast: #F7F3EA;
   --accent-border: #7A7865;
-  --card-bg: #F2EDE0;
-  --shadow: 0 4px 20px rgba(92, 64, 60, 0.15);
-  --shadow-strong: 0 6px 30px rgba(92, 64, 60, 0.25);
-  
-  /* Transition speed */
-  --transition-slow: 0.6s ease-out;
-  --transition-medium: 0.4s ease-out;
+  --flame: #D4A574;
+  --flame-bright: #F2B866;
+  --flame-core: #FFF3D6;
+  --metal: #5C403C;
+  --shadow: 0 4px 20px rgba(92, 64, 60, 0.12);
+  --shadow-strong: 0 6px 30px rgba(92, 64, 60, 0.22);
+  --texture: rgba(92, 64, 60, 0.03);
+  color-scheme: light;
 }
 
-body.evening-mode {
-  /* Evening Mode */
+.dark {
   --app-bg: #2A2520;
-  --text-primary: #E8E2D2;
-  --text-secondary: #A69D8F;
-  --accent-active: #5F8A8E;
-  --accent-border: #8A8170;
   --card-bg: #3A342D;
-  --shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
-  --shadow-strong: 0 6px 30px rgba(0, 0, 0, 0.7);
+  --text-primary: #EDE6D6;
+  --text-secondary: #B5AC9C;
+  --text-muted: #8F8678;
+  --accent-active: #7FA7AB;
+  --accent-contrast: #1F1B17;
+  --accent-border: #8A8170;
+  --metal: #CFC6B4;
+  --shadow: 0 4px 20px rgba(0, 0, 0, 0.45);
+  --shadow-strong: 0 6px 30px rgba(0, 0, 0, 0.6);
+  --texture: rgba(255, 240, 210, 0.02);
+  color-scheme: dark;
+}
+
+/* Expose the tokens to Tailwind as utilities: bg-app-bg, text-text-secondary, ... */
+@theme inline {
+  --color-app-bg: var(--app-bg);
+  --color-background: var(--app-bg);
+  --color-card: var(--card-bg);
+  --color-card-bg: var(--card-bg);
+  --color-surface-bg: var(--card-bg);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+  --color-primary: var(--text-primary);
+  --color-accent: var(--accent-active);
+  --color-accent-active: var(--accent-active);
+  --color-accent-contrast: var(--accent-contrast);
+  --color-accent-border: var(--accent-border);
+  --color-border-color: var(--accent-border);
+  --color-flame: var(--flame);
+  --color-metal: var(--metal);
+
+  --font-sans: var(--font-heebo), system-ui, sans-serif;
+  --font-serif: var(--font-frank), 'Times New Roman', serif;
 }
 
 @layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+
   body {
     background-color: var(--app-bg);
     color: var(--text-primary);
-    transition: background-color var(--transition-slow), color var(--transition-medium);
-    font-family: 'Heebo', system-ui, sans-serif;
-    position: relative;
-    min-height: 100vh;
+    font-family: var(--font-sans);
+    min-height: 100dvh;
+    transition: background-color 0.6s ease-out, color 0.4s ease-out;
   }
 
-  /* Parchment Texture Overlay */
+  /* Parchment texture */
   body::before {
     content: '';
     position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-image: 
-      repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(92, 64, 60, 0.03) 2px, rgba(92, 64, 60, 0.03) 4px),
-      repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(92, 64, 60, 0.03) 2px, rgba(92, 64, 60, 0.03) 4px);
+    inset: 0;
+    background-image:
+      repeating-linear-gradient(0deg, transparent 0 2px, var(--texture) 2px 4px),
+      repeating-linear-gradient(90deg, transparent 0 2px, var(--texture) 2px 4px);
     pointer-events: none;
-    opacity: 0.5;
-    z-index: 1;
+    z-index: 0;
   }
 
   body > * {
     position: relative;
-    z-index: 2;
+    z-index: 1;
   }
 
   h1, h2, h3, .text-sacred {
-    font-family: 'Frank Ruhl Libre', serif;
+    font-family: var(--font-serif);
+  }
+
+  button {
+    cursor: pointer;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--accent-active);
+    outline-offset: 2px;
   }
 }
 
 @layer components {
-  /* Sacred Card Style */
+  /* A page of the book: double frame */
   .sacred-card {
     background-color: var(--card-bg);
-    border: 2px double var(--accent-border);
-    border-radius: 16px;
+    border: 3px double var(--accent-border);
+    border-radius: 18px;
     padding: 24px;
-    box-shadow: 
-      inset 0 2px 8px rgba(92, 64, 60, 0.08),
-      0 4px 12px rgba(92, 64, 60, 0.12);
-    transition: all var(--transition-slow);
+    box-shadow: inset 0 2px 8px rgba(92, 64, 60, 0.06), var(--shadow);
     position: relative;
   }
 
-  .sacred-card::before {
-    content: '';
-    position: absolute;
-    inset: 8px;
-    border: 1px solid var(--accent-border);
-    border-radius: 12px;
-    opacity: 0.2;
-    pointer-events: none;
-  }
-
-  /* Step Circles */
-  .step-circle {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    border: 2px solid var(--accent-border);
+  .input {
     background: transparent;
-    transition: all var(--transition-slow);
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    border-bottom: 1px solid var(--accent-border);
+    border-radius: 0;
+    padding: 10px 0;
+    color: var(--text-primary);
+    transition: border-color 0.3s;
   }
 
-  .step-circle.lit {
-    background: var(--accent-active);
+  .input::placeholder {
+    color: var(--text-muted);
+  }
+
+  .input:focus {
+    border-bottom-color: var(--accent-active);
+    outline: none;
+  }
+
+  .btn-primary {
+    background-color: var(--accent-active);
+    color: var(--accent-contrast);
+    padding: 14px 24px;
+    border-radius: 14px;
+    font-weight: 700;
+    box-shadow: var(--shadow);
+    transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s;
+  }
+
+  .btn-primary:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-strong);
+  }
+
+  .btn-primary:disabled {
+    opacity: 0.6;
+  }
+
+  .btn-quiet {
+    color: var(--text-secondary);
+    padding: 10px 14px;
+    border-radius: 12px;
+    transition: background-color 0.2s;
+  }
+
+  .btn-quiet:hover {
+    background-color: color-mix(in srgb, var(--text-primary) 6%, transparent);
+  }
+
+  .chip {
+    padding: 12px 14px;
+    border-radius: 14px;
+    border: 1.5px solid color-mix(in srgb, var(--accent-border) 35%, transparent);
+    background: color-mix(in srgb, var(--card-bg) 70%, transparent);
+    color: var(--text-secondary);
+    font-weight: 500;
+    transition: all 0.2s;
+  }
+
+  .chip[aria-pressed='true'],
+  .chip[aria-selected='true'] {
     border-color: var(--accent-active);
-    box-shadow: 0 0 15px var(--accent-active);
-    transform: scale(1.1);
+    background: color-mix(in srgb, var(--accent-active) 12%, transparent);
+    color: var(--accent-active);
   }
 
-  /* Utility Animations */
-  .fade-in-up {
-    animation: fadeInUp 1.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  /* Small labels. Hebrew is never letter-spaced. */
+  .label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-secondary);
   }
 
-  .flame-breathe {
-    animation: breathe 3s ease-in-out infinite;
+  .safe-bottom {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
   }
 }
 
-@keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+@keyframes flicker {
+  0%, 100% { transform: scaleY(1) translateY(0); opacity: 0.95; }
+  35% { transform: scaleY(1.06) translateY(-0.3px); opacity: 1; }
+  70% { transform: scaleY(0.96) translateY(0.2px); opacity: 0.9; }
 }
 
-@keyframes breathe {
-  0%, 100% { opacity: 0.7; }
-  50% { opacity: 1.0; }
+.flame {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: flicker 2.6s ease-in-out infinite;
 }
 
-/* Custom Input Styles to match parchment */
-.input {
-  background: transparent;
-  border-bottom: 1px solid var(--accent-border);
-  border-radius: 0;
-  padding: 8px 0;
-  transition: border-color 0.3s;
-}
-
-.input:focus {
-  border-bottom-color: var(--accent-active);
-  outline: none;
-}
-
-.btn-primary {
-  background-color: var(--accent-active);
-  color: white;
-  padding: 12px 24px;
-  border-radius: 12px;
-  font-weight: bold;
-  box-shadow: var(--shadow);
-  transition: all 0.3s;
-}
-
-.btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-strong);
-}
-
-.gradient-text {
-  color: var(--text-primary);
-  background: none; /* Removed modern gradients for stone aesthetic */
+@media (prefers-reduced-motion: reduce) {
+  .flame { animation: none; }
+  * { transition-duration: 0.01ms !important; }
 }

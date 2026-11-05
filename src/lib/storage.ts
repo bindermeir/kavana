@@ -1,184 +1,138 @@
+// Client-side data access. Row Level Security guarantees every query
+// only ever sees the signed-in user's own rows.
 import { supabase } from './supabase';
+import type {
+    JournalEntry, MinchaCheckin, Offload, Prayer, Task, TaskType, UserMemory, UserProfile, WeeklyScroll,
+} from './types';
 
-export interface UserProfile {
-    id: string;
-    name: string;
-    email?: string;
-    future_vision?: string;
-    current_goal?: string;
-    core_values?: string[];
-    belief_system?: string;
-    prayer_meaning?: string[];
-    tone?: 'Adaptive' | 'Direct' | 'Soft' | 'Poetic';
-    addressing_mode?: 'Direct' | 'Compassionate' | 'Formal';
-    content_boundaries?: string[];
-    onboarding_completed?: boolean;
-    created_at?: string;
-    morning_reminder_time?: string;
-    evening_reminder_time?: string;
-    // New fields from onboarding refactor
-    current_state?: string;
-    relationship_status?: string;
-    relationship_approach_in_texts?: string;
-    work_money_place?: string;
-    cultural_connections?: string[];
-    personal_abilities?: string[];
-    inspiring_people?: string;
-    usage_mode?: string;
-    language?: 'he' | 'en';
-    calendar_subscriptions?: string[];
+async function uid(): Promise<string | null> {
+    const { data } = await supabase.auth.getSession();
+    return data.session?.user.id ?? null;
 }
 
-export interface PrayerEntry {
-    id: string;
-    user_id?: string;
-    content: string;
-    date: string;
-    style_used: string;
-    focus_area: string;
-    is_favorite?: boolean;
+async function requireUid(): Promise<string> {
+    const id = await uid();
+    if (!id) throw new Error('Not signed in');
+    return id;
 }
 
-export interface JournalEntry {
-    id: string;
-    user_id?: string;
-    gratitude_items: string;
-    daily_success: string;
-    capacity_used: string;
-    declaration: string;
-    date: string;
-}
-
-export interface Task {
-    id: string;
-    user_id?: string;
-    task_type: 'success_list' | 'capability_list';
-    content: string;
-    completed: boolean;
-    date: string;
-}
-
-export interface Offload {
-    id: string;
-    user_id?: string;
-    content: string;
-    ai_response?: string;
-    date: string;
-    timestamp: string;
-}
-
-export interface WeeklyScroll {
-    id: string;
-    user_id?: string;
-    content: string;
-    start_date: string;
-    end_date: string;
-    insights?: any;
-    created_at?: string;
-}
-
-// PROFILE
+// ---------- profile ----------
 export async function getProfile(): Promise<UserProfile | null> {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return null;
-
-    const { data, error } = await supabase.from('user_profiles').select('*').eq('id', user.id).single();
-    if (error) return null;
-    return data;
+    const id = await uid();
+    if (!id) return null;
+    const { data } = await supabase.from('user_profiles').select('*').eq('id', id).maybeSingle();
+    return (data as UserProfile) || null;
 }
 
-export async function saveProfile(profile: UserProfile): Promise<void> {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('User not authenticated');
-
-    const { error } = await supabase.from('user_profiles').upsert({
-        ...profile,
-        id: user.id, // Enforce id matching auth.uid()
-        updated_at: new Date().toISOString()
-    });
+export async function updateProfile(patch: Partial<UserProfile>): Promise<UserProfile> {
+    const id = await requireUid();
+    // Never let the client move ownership or timestamps.
+    const { id: _ignoredId, created_at: _c, updated_at: _u, ...rest } = patch;
+    void _ignoredId; void _c; void _u;
+    const { data, error } = await supabase
+        .from('user_profiles')
+        .upsert({ ...rest, id }, { onConflict: 'id' })
+        .select()
+        .single();
     if (error) throw error;
+    return data as UserProfile;
 }
 
-// PRAYERS
-export async function getPrayers(): Promise<PrayerEntry[]> {
-    const { data, error } = await supabase.from('prayers').select('*').order('date', { ascending: false });
-    if (error) return [];
-    return data;
+// ---------- by date range ----------
+export interface DayRecords {
+    prayers: Prayer[];
+    minchas: MinchaCheckin[];
+    journals: JournalEntry[];
+    offloads: Offload[];
 }
 
-export async function savePrayer(prayer: PrayerEntry): Promise<void> {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('User not authenticated');
+export async function getRange(from: string, to: string): Promise<DayRecords> {
+    const id = await uid();
+    if (!id) return { prayers: [], minchas: [], journals: [], offloads: [] };
+    const q = (table: string) =>
+        supabase.from(table).select('*').eq('user_id', id).gte('date', from).lte('date', to).order('created_at', { ascending: true });
+    const [p, m, j, o] = await Promise.all([q('prayers'), q('mincha_checkins'), q('journal_entries'), q('offloads')]);
+    return {
+        prayers: (p.data || []) as Prayer[],
+        minchas: (m.data || []) as MinchaCheckin[],
+        journals: (j.data || []) as JournalEntry[],
+        offloads: (o.data || []) as Offload[],
+    };
+}
 
-    const { error } = await supabase.from('prayers').insert({
-        ...prayer,
-        user_id: user.id
-    });
+/** How many of the three moments were done on each date (0 to 3). */
+export function flameLevels(r: DayRecords): Record<string, number> {
+    const days: Record<string, Set<string>> = {};
+    const mark = (date: string, m: string) => { (days[date] ||= new Set()).add(m); };
+    r.prayers.forEach((x) => mark(x.date, 's'));
+    r.minchas.forEach((x) => mark(x.date, 'm'));
+    r.journals.forEach((x) => mark(x.date, 'a'));
+    return Object.fromEntries(Object.entries(days).map(([d, s]) => [d, s.size]));
+}
+
+// ---------- mincha ----------
+export async function saveMincha(date: string, feeling: string | null, path: string): Promise<MinchaCheckin> {
+    const id = await requireUid();
+    const { data, error } = await supabase
+        .from('mincha_checkins')
+        .insert({ user_id: id, date, feeling, path })
+        .select()
+        .single();
     if (error) throw error;
+    return data as MinchaCheckin;
 }
 
-// JOURNAL
-export async function getJournalEntries(): Promise<JournalEntry[]> {
-    const { data, error } = await supabase.from('journal_entries').select('*').order('date', { ascending: false });
-    if (error) return [];
-    return data;
+// ---------- prayers ----------
+export async function setPrayerFeedback(prayerId: string, score: number) {
+    await supabase.from('prayers').update({ feedback_score: score }).eq('id', prayerId);
 }
 
-export async function saveJournalEntry(entry: JournalEntry): Promise<void> {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('User not authenticated');
-
-    const { error } = await supabase.from('journal_entries').insert({
-        ...entry,
-        user_id: user.id
-    });
-    if (error) throw error;
-}
-
-// TASKS
+// ---------- bank ----------
 export async function getTasks(): Promise<Task[]> {
-    const { data, error } = await supabase.from('tasks').select('*').order('created_at', { ascending: false });
-    if (error) return [];
-    return data;
+    const id = await uid();
+    if (!id) return [];
+    const { data } = await supabase.from('tasks').select('*').eq('user_id', id).order('created_at', { ascending: false });
+    return (data || []) as Task[];
 }
 
-export async function saveTask(task: Omit<Task, 'user_id'>): Promise<void> {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('User not authenticated');
+export async function addTask(task_type: TaskType, content: string, date: string): Promise<Task> {
+    const id = await requireUid();
+    const { data, error } = await supabase
+        .from('tasks')
+        .insert({ user_id: id, task_type, content, date })
+        .select()
+        .single();
+    if (error) throw error;
+    return data as Task;
+}
 
-    const { error } = await supabase.from('tasks').insert({
-        ...task,
-        user_id: user.id
-    });
+export async function deleteTask(taskId: string) {
+    await supabase.from('tasks').delete().eq('id', taskId);
+}
+
+// ---------- weekly scrolls ----------
+export async function getScrolls(): Promise<WeeklyScroll[]> {
+    const id = await uid();
+    if (!id) return [];
+    const { data } = await supabase.from('weekly_scrolls').select('*').eq('user_id', id).order('week_start', { ascending: false });
+    return (data || []) as WeeklyScroll[];
+}
+
+// ---------- memory ----------
+export async function getMemory(): Promise<UserMemory | null> {
+    const id = await uid();
+    if (!id) return null;
+    const { data } = await supabase.from('user_memory').select('*').eq('user_id', id).maybeSingle();
+    return (data as UserMemory) || null;
+}
+
+export async function saveMemory(portrait: string) {
+    const id = await requireUid();
+    const { error } = await supabase.from('user_memory').upsert({ user_id: id, portrait }, { onConflict: 'user_id' });
     if (error) throw error;
 }
 
-// OFFLOADS
-export async function saveOffload(offload: Omit<Offload, 'user_id'>): Promise<void> {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('User not authenticated');
-
-    const { error } = await supabase.from('offloads').insert({
-        ...offload,
-        user_id: user.id
-    });
-    if (error) throw error;
-}
-
-// WEEKLY SCROLLS
-export async function getWeeklyScrolls(): Promise<WeeklyScroll[]> {
-    const { data, error } = await supabase.from('weekly_scrolls').select('*').order('created_at', { ascending: false });
-    if (error) return [];
-    return data;
-}
-
-export async function saveWeeklyScroll(scroll: Omit<WeeklyScroll, 'user_id'>): Promise<void> {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('User not authenticated');
-
-    const { error } = await supabase.from('weekly_scrolls').insert({
-        ...scroll,
-        user_id: user.id
-    });
-    if (error) throw error;
+export async function deleteMemory() {
+    const id = await requireUid();
+    await supabase.from('user_memory').delete().eq('user_id', id);
 }
