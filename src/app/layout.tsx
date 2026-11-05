@@ -18,7 +18,7 @@ export const metadata: Metadata = {
     description: 'שלושה רגעים ביום, שבעה נרות בשבוע. התכווננות אישית במינימום זמן.',
     manifest: '/manifest.json',
     appleWebApp: { capable: true, statusBarStyle: 'black-translucent', title: 'כוונה' },
-    icons: { icon: '/icons/icon-192x192.png', apple: '/icons/icon-192x192.png' },
+    icons: { apple: '/icons/icon-192x192.png' },
 };
 
 export const viewport: Viewport = {
