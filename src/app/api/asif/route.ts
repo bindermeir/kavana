@@ -29,33 +29,11 @@ export async function POST(req: Request) {
             supabase.from('journal_entries').select('id, success, capability').eq('user_id', user.id).eq('date', date).maybeSingle(),
         ]);
 
-        const ai = await generateJSON<{ declaration?: string; share_lines?: unknown }>({
-            system: systemPrompt(profile, adminNote),
-            prompt: eveningPrompt({
-                profile,
-                portrait,
-                date,
-                success,
-                capability,
-                gratitude,
-                morning: morning.data as Prayer | null,
-                mincha: mincha.data as MinchaCheckin | null,
-                capabilities: (bank.data || []) as Task[],
-            }),
-        });
-
+        // Save what they wrote first, so a failed AI call never costs them their words.
         const { data: saved, error } = await supabase
             .from('journal_entries')
             .upsert(
-                {
-                    user_id: user.id,
-                    date,
-                    success,
-                    capability,
-                    gratitude,
-                    declaration: cleanText(ai.declaration, 1500) || null,
-                    share_lines: cleanShareLines(ai.share_lines),
-                },
+                { user_id: user.id, date, success, capability, gratitude, declaration: null, share_lines: {} },
                 { onConflict: 'user_id,date' },
             )
             .select()
@@ -69,7 +47,36 @@ export async function POST(req: Request) {
         if (prev?.capability !== capability) newTasks.push({ user_id: user.id, task_type: 'capability_list', content: capability, date });
         if (newTasks.length) await supabase.from('tasks').insert(newTasks);
 
-        return Response.json({ entry: saved });
+        // The declaration is a gift on top. Without it the entry stays saved, and editing it tries again.
+        try {
+            const ai = await generateJSON<{ declaration?: string; share_lines?: unknown }>({
+                system: systemPrompt(profile, adminNote),
+                prompt: eveningPrompt({
+                    profile,
+                    portrait,
+                    date,
+                    success,
+                    capability,
+                    gratitude,
+                    morning: morning.data as Prayer | null,
+                    mincha: mincha.data as MinchaCheckin | null,
+                    capabilities: (bank.data || []) as Task[],
+                }),
+            });
+
+            const { data: withDeclaration, error: updateError } = await supabase
+                .from('journal_entries')
+                .update({ declaration: cleanText(ai.declaration, 1500) || null, share_lines: cleanShareLines(ai.share_lines) })
+                .eq('id', saved.id)
+                .select()
+                .single();
+            if (updateError) throw updateError;
+
+            return Response.json({ entry: withDeclaration });
+        } catch (e) {
+            console.error('Asif saved without a declaration:', e);
+            return Response.json({ entry: saved });
+        }
     } catch (e) {
         return errorResponse(e);
     }
