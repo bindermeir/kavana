@@ -1,7 +1,7 @@
 import { getUserContext, errorResponse, readSystemConfig } from '@/lib/supabase-server';
 import { loadProfile, loadPortrait, cleanShareLines, readBody, requireText } from '@/lib/server/data';
 import { requireClientDate } from '@/lib/server/dates';
-import { generateJSON, cleanText } from '@/lib/ai/gemini';
+import { generateJSON, cleanText } from '@/lib/ai/generate';
 import { systemPrompt, eveningPrompt } from '@/lib/ai/prompts';
 import type { MinchaCheckin, Prayer, Task } from '@/lib/types';
 

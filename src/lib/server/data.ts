@@ -1,5 +1,5 @@
 import { HttpError, type DbClient } from '../supabase-server';
-import { cleanText } from '../ai/gemini';
+import { cleanText } from '../ai/generate';
 import type { ShareLines, UserProfile } from '../types';
 
 export async function loadProfile(supabase: DbClient, userId: string): Promise<UserProfile> {

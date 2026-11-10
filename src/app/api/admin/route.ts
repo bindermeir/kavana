@@ -1,6 +1,6 @@
 import { getUserContext, getServiceClient, isAdminEmail, errorResponse, HttpError } from '@/lib/supabase-server';
 import { readBody } from '@/lib/server/data';
-import { cleanText } from '@/lib/ai/gemini';
+import { cleanText } from '@/lib/ai/generate';
 
 /** Only signed-in users whose email is listed in ADMIN_EMAILS get past this. */
 async function requireAdmin(req: Request) {

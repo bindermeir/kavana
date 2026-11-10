@@ -1,7 +1,7 @@
 import { getUserContext, errorResponse } from '@/lib/supabase-server';
 import { loadProfile, readBody, requireText } from '@/lib/server/data';
 import { requireClientDate } from '@/lib/server/dates';
-import { generateJSON, cleanText } from '@/lib/ai/gemini';
+import { generateJSON, cleanText } from '@/lib/ai/generate';
 import { systemPrompt, offloadPrompt } from '@/lib/ai/prompts';
 import type { Prayer } from '@/lib/types';
 
