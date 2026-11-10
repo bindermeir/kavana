@@ -167,7 +167,10 @@ export default function ProfileView() {
             </section>
 
             <section className="flex items-center justify-between text-sm">
-                <Link href="/about" className="btn-quiet !px-0">על כוונה</Link>
+                <div className="flex gap-4">
+                    <Link href="/about" className="btn-quiet !px-0">על כוונה</Link>
+                    <Link href="/privacy" className="btn-quiet !px-0">מדיניות פרטיות</Link>
+                </div>
                 <button className="btn-quiet flex items-center gap-1.5" onClick={logout}>
                     <LogOut className="w-4 h-4" />
                     התנתקות
