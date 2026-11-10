@@ -1,7 +1,7 @@
 import { getUserContext, errorResponse, readSystemConfig, HttpError } from '@/lib/supabase-server';
 import { loadProfile, loadPortrait, cleanShareLines, readBody } from '@/lib/server/data';
 import { requireClientDate } from '@/lib/server/dates';
-import { generateJSON, cleanText } from '@/lib/ai/gemini';
+import { generateJSON, cleanText } from '@/lib/ai/generate';
 import { systemPrompt, weeklyPrompt } from '@/lib/ai/prompts';
 import { addDays, isDateStr, weekStart as weekStartOf } from '@/lib/dates';
 import type { JournalEntry, MinchaCheckin, Offload, Prayer, ScrollContent } from '@/lib/types';

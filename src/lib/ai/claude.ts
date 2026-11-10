@@ -9,7 +9,7 @@ export function isClaudeConfigured(): boolean {
 
 /**
  * Asks Claude for the raw JSON text of an answer.
- * The backup for when Gemini cannot answer; the prompts already ask for JSON only.
+ * The main AI for Kavana; the prompts already ask for JSON only.
  */
 export async function generateClaudeText({ system, prompt }: { system: string; prompt: string }): Promise<string> {
     const response = await new Anthropic().messages.create({

@@ -26,7 +26,7 @@ npm run dev
 | תיקייה | מה יש בה |
 |---|---|
 | `src/app/api/*` | נתיבי השרת: `kavana` (שחרית), `asif` (ערבית), `offload`, `scroll` (המגילה), `admin` |
-| `src/lib/ai/` | החיבור ל-Gemini, הפרומפטים והקשר לוח השנה |
+| `src/lib/ai/` | החיבור ל-Claude (ול-Gemini כגיבוי אופציונלי), הפרומפטים והקשר לוח השנה |
 | `src/components/app/` | מעטפת האפליקציה: היום, הספר, יש בי, אני |
 | `src/components/moments/` | שלושת הרגעים |
 | `src/components/menorah/` | המנורה ו"סוד המנורה" |

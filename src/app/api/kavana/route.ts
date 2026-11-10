@@ -1,7 +1,7 @@
 import { getUserContext, errorResponse, readSystemConfig } from '@/lib/supabase-server';
 import { loadProfile, loadPortrait, cleanShareLines, readBody } from '@/lib/server/data';
 import { requireClientDate } from '@/lib/server/dates';
-import { generateJSON, cleanText } from '@/lib/ai/gemini';
+import { generateJSON, cleanText } from '@/lib/ai/generate';
 import { systemPrompt, morningPrompt } from '@/lib/ai/prompts';
 import { getDailyContext } from '@/lib/ai/calendar-context';
 import { addDays } from '@/lib/dates';
