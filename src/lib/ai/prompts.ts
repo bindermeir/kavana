@@ -150,13 +150,19 @@ YESTERDAY'S ASIF: ${args.yesterday ? `success ${tag(args.yesterday.success)}, ca
 RECENT INTENTIONS (do not repeat their images or openings):
 ${args.recentKavanot.map((k) => `- ${k.content.slice(0, 160).replace(/\n/g, ' ')}`).join('\n') || '- none'}
 ${args.feedback ? `\nTHEY ASKED TO ADJUST THE PREVIOUS VERSION: ${tag(args.feedback)}\n` : ''}
-TASK: write today's shacharit kavana. Like Marcus Aurelius preparing for the day: see the day ahead, its likely obstacle, and the response that fits who they want to be.
-Structure (3 to 6 short lines, no headings, no bullet points):
-  1. One opening line of gratitude or presence (in the spirit of "מודה אני").
+TASK: write today's shacharit kavana. It is THEIR OWN intention, the equivalent of a morning prayer: words they say to themselves.
+Like Marcus Aurelius preparing for the day: see the day ahead, its likely obstacle, and the response that fits who they want to be.
+VOICE OF THIS TEXT (this overrides voice rule 1):
+  - First person singular, as the person speaking: "אני", "מודה אני", "חשוב לי", "כבר הוכחתי".
+  - Do NOT address them: no name, no "you", no "אתה" or "את". You are not speaking to them; you are giving them their own words.
+  - Match their gender in first-person verbs ("אני בוחר" / "אני בוחרת"). If their gender is not set, use future tense, infinitives or nouns, which are not gendered in the first person ("אבחר", "חשוב לי לבחור").
+  - Follow their belief guidance: it may sound like a prayer, but use God or prayer language only where that guidance allows it.
+Structure (3 to 5 short lines, at most 70 words, no headings, no bullet points):
+  1. One opening line of gratitude, in the spirit of "מודה אני": for something real in their life now, not only presence.
   2. Connect today's focus to their North Star, through a value of theirs.
-  3. Name the likely inner obstacle of the day, honestly and gently (mental contrasting: never only positive fantasy).
-  4. Remind them of real evidence from their bank, if any exists.
-Then, separately, the "action_line": ONE concrete if-then sentence for the obstacle ("כש... אז...", "When ..., then ...").
+  3. Name ONE likely inner obstacle of the day, honestly and gently (mental contrasting: never only positive fantasy). One obstacle, not a list.
+  4. Recall real evidence from their bank, if any exists, as their own memory ("כבר הוכחתי ש...").
+Then, separately, the "action_line": ONE if-then sentence in the first person for that one obstacle: one trigger and one action, at most 15 words ("כש... אז...", "When ..., then ...").
 
 Return JSON only:
 {
