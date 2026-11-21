@@ -42,3 +42,10 @@ next-env.d.ts
 
 # example env is safe to commit
 !.env.example
+
+# calendar research: large downloads and generated sandbox corpora
+.claude/settings.local.json
+calendar-research/_downloads/
+calendar-research/_work/
+calendar-research/sandbox/*/corpus/
+calendar-research/sandbox/*/astronomy/
