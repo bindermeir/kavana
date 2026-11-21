@@ -49,3 +49,4 @@ calendar-research/_downloads/
 calendar-research/_work/
 calendar-research/sandbox/*/corpus/
 calendar-research/sandbox/*/astronomy/
+__pycache__/
