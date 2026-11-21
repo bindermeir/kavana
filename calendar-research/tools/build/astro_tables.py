@@ -1,6 +1,6 @@
 """Precompute neutral astronomical tables for Jerusalem, 1000 BCE - 70 CE.
 Uses PyEphem (VSOP87/ELP; built-in Delta-T). Dates: proleptic Julian calendar,
-astronomical year numbering (year 0 = 1 BCE, -700 = 701 BCE). Times local mean solar (UT+2h21m).
+historical numbering as used by PyEphem: no year 0, -700 = 700 BCE, -1 = 1 BCE. Times local mean solar (UT+2h21m).
 Crescent visibility: Yallop (1997) q-test at 'best time' (sunset + 4/9 lag)."""
 import ephem, math, sys, os
 OUT=sys.argv[1]; os.makedirs(OUT,exist_ok=True)
@@ -15,7 +15,7 @@ def ymd(d):
 def fmt(d):
     y,m,dd=ephem.Date(d+LOCAL).triple()
     hh=(dd-int(dd))*24; return f'{y}/{m:02d}/{int(dd):02d} {int(hh):02d}:{int((hh%1)*60):02d}'
-def bce(y): return f'{1-y} לפנה"ס' if y<=0 else f'{y} לספירה'
+def bce(y): return f'{-y} לפנה"ס' if y<0 else f'{y} לספירה'   # PyEphem has no year 0: -700 = 700 BCE
 def obs(date):
     o=ephem.Observer(); o.lat=LAT; o.lon=LON; o.elevation=EL; o.pressure=0; o.horizon='-0:34'; o.date=date; return o
 def yallop(o_date, evening=True):
@@ -81,8 +81,8 @@ while d<end:
         e=fn(d); y,_,_=ymd(e); srows.append(f'{bce(y)}\t{name}\t{fmt(e)}\t{dow(jd(e))}\t{jd(e):.3f}')
     d=ephem.Date(d+365.2422)
 open(f'{OUT}/seasons_jerusalem.tsv','w').write('שנה\tאירוע\tזמן_מקומי\tיום_בשבוע\tJD\n'+'\n'.join(srows)+'\n')
-# daily sun for a sample year (701 BCE) and (200 BCE): sunrise/sunset/daylength/azimuth
-for Y in (-700,-199):
+# daily sun for sample years 701 BCE and 200 BCE: sunrise/sunset/daylength/azimuth
+for Y in (-701,-200):
     out=['תאריך_יוליאני\tזריחה\tשקיעה\tאורך_היום_שעות\tאורך_היום_ב-1/18\tאזימוט_זריחה_מעלות\tאזימוט_שקיעה_מעלות']
     d=ephem.Date(f'{Y}/1/1')
     for i in range(366):
