@@ -57,6 +57,7 @@ git clone --depth 1 https://github.com/scrollmapper/bible_databases_deuterocanon
 pip install text-fabric ephem
 python3 -I tools/build/export_dss.py _downloads/dss/tf/2.0.5 _work/dss_txt
 unshare -n python3 -I tools/build/astro_tables.py _work/astronomy
+unshare -n python3 -I tools/build/eclipses.py _work/astronomy
 python3 -I tools/build/build_stage.py $PWD <N>
 ```
 (וגם להעתיק את _work/astronomy/README.md, שנכתב ידנית; עותק שמור ב-methodology/astronomy_README.md.)
